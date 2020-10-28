@@ -1,6 +1,6 @@
 import { APISocket } from 'airdcpp-apisocket';
 
-import { ShareRootEntryBase } from './types';
+import { SeverityEnum, ShareRootEntryBase } from './types';
 
 
 export const API = (socket: APISocket) => {
@@ -38,11 +38,34 @@ export const API = (socket: APISocket) => {
     );
   };
 
+  const isPathShared = async (path: string) => {
+    const result = await socket.post<{ is_shared: boolean }>(
+      'share/is_path_shared',
+      {
+        path
+      }
+    );
+
+    return result.is_shared;
+  };
+
+  const postEvent = async (text: string, severity: SeverityEnum) => {
+    return socket.post(
+      'events',
+      {
+        text,
+        severity,
+      }
+    );
+  };
+
   return {
     getSettingValue,
     getShareRoots,
     validateSharePath,
+    isPathShared,
     refreshSharePaths,
+    postEvent,
   };
 };
 

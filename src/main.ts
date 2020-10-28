@@ -11,7 +11,7 @@ import SettingsManager from 'airdcpp-extension-settings';
 import { ExtensionEntryData } from 'airdcpp-extension';
 import { CONFIG_VERSION, SettingDefinitions } from './settings';
 
-import { Monitor } from './monitor';
+import { Monitor } from './monitor/monitor';
 import { API } from './api';
 
 
@@ -35,7 +35,14 @@ const Extension = function (socket: APISocket, extension: ExtensionEntryData) {
     await settings.load();
 
     const api = API(socket);
-    const monitor = await Monitor(socket.logger, settings, api);
+    const monitor = await Monitor({
+      logger: socket.logger, 
+      getExtSetting: settings.getValue,
+      api,
+      now: Date.now
+    });
+
+    monitor.start();
 
     socket.addListener('share_roots', 'share_root_created', monitor.onRootAdded);
     socket.addListener('share_roots', 'share_root_removed', monitor.onRootRemoved);

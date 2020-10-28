@@ -7,7 +7,7 @@ export enum MonitoringMode {
 export enum ModificationCountMode {
   ANY = 'any',
   DIRECTORY = 'directory',
-  DEVICE = 'device',
+  ROOT = 'root',
 };
 
 export interface ExtensionSettings {
@@ -23,3 +23,16 @@ export interface ShareRootEntryBase {
   path: string;
   incoming: boolean;
 }
+
+export const enum SeverityEnum {
+  NOTIFY = 'notify',
+  INFO = 'info',
+  WARNING = 'warning',
+  ERROR = 'error',
+}
+
+// MISC
+export type AsyncReturnType<T extends (...args: any) => any> =
+  T extends (...args: any) => Promise<infer U> ? U :
+  T extends (...args: any) => infer U ? U :
+  any;

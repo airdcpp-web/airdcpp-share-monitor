@@ -1,14 +1,12 @@
 import waitForExpect from 'wait-for-expect';
 
-import { getMockMonitor, MOCK_SHARE_ROOTS, MOCK_EXTENSION_SETTINGS, MOCK_INCOMING_ROOT, toWatchPaths } from './helpers';
-import { Monitor } from 'src/monitor';
-import { MonitoringMode } from 'src/types';
+import { Monitor } from 'src/monitor/monitor';
+import { AsyncReturnType, MonitoringMode } from 'src/types';
 
+import { DEFAULT_EXPECT_TIMEOUT, getMockMonitor, toWatchPaths } from './helpers';
+import { MOCK_INCOMING_ROOT, MOCK_SHARE_ROOTS } from './mocks/mock-data';
+import { MOCK_EXTENSION_SETTINGS } from './mocks/mock-context-defaults';
 
-type AsyncReturnType<T extends (...args: any) => any> =
-	T extends (...args: any) => Promise<infer U> ? U :
-	T extends (...args: any) => infer U ? U :
-	any
 
 describe('Monitor', () => {
   let monitor: AsyncReturnType<typeof Monitor>;
@@ -19,23 +17,27 @@ describe('Monitor', () => {
 
   test('should watch all root paths', async () => {
     monitor = await getMockMonitor({
-      ...MOCK_EXTENSION_SETTINGS,
-      monitoring_mode: MonitoringMode.ALL
+      settings: {
+        ...MOCK_EXTENSION_SETTINGS,
+        monitoring_mode: MonitoringMode.ALL,
+      }
     });
 
     await waitForExpect(() => {
       expect(monitor.getWatchPaths()).toEqual(toWatchPaths(MOCK_SHARE_ROOTS));
-    }, 1000);
+    }, DEFAULT_EXPECT_TIMEOUT);
   });
 
   test('should only watch incoming root paths', async () => {
     monitor = await getMockMonitor({
-      ...MOCK_EXTENSION_SETTINGS,
-      monitoring_mode: MonitoringMode.INCOMING
+      settings: {
+        ...MOCK_EXTENSION_SETTINGS,
+        monitoring_mode: MonitoringMode.INCOMING,
+      }
     });
 
     await waitForExpect(() => {
       expect(monitor.getWatchPaths()).toEqual(toWatchPaths([ MOCK_INCOMING_ROOT ]));
-    }, 1000);
+    }, DEFAULT_EXPECT_TIMEOUT);
   });
 });

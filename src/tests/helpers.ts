@@ -1,83 +1,75 @@
-import { Monitor, } from '../monitor';
+import { Monitor, } from '../monitor/monitor';
 import path from 'path';
-import { API } from 'src/api';
-import { ExtensionSettings, ModificationCountMode, MonitoringMode, ShareRootEntryBase } from 'src/types';
+import { APIType } from 'src/api';
+import { AsyncReturnType, ExtensionSettings, ShareRootEntryBase } from 'src/types';
+import { unlinkSync } from 'fs';
+import { Context } from 'src/context';
+import { MOCK_API, MOCK_EXTENSION_SETTINGS, MOCK_LOGGER } from './mocks/mock-context-defaults';
+import waitForExpect from 'wait-for-expect';
+import { MOCK_SHARE_ROOTS } from './mocks/mock-data';
 
 
-const MOCK_LOGGER = {
-  verbose: (...args: any) => {
-    // console.log(...args);
-  },
-  info: (...args: any) => {
-    // console.info(...args);
-  },
-  warn: (...args: any) => {
-    console.warn(...args);
-  },
-  error: (...args: any) => {
-    console.error(...args);
-  },
-};
+export const DEFAULT_EXPECT_TIMEOUT = 1500;
 
-export const MOCK_INCOMING_ROOT = {
-  id: 'incoming',
-  virtual_name: 'Incoming',
-  path: path.join(__dirname, 'data', 'incoming'),
-  incoming: true,
-};
-
-export const MOCK_NORMAL_ROOT = {
-  id: 'normal',
-  virtual_name: 'Normal',
-  path: path.join(__dirname, 'data', 'normal'),
-  incoming: false,
-};
-
-export const MOCK_SHARE_ROOTS = [
-  MOCK_INCOMING_ROOT,
-  MOCK_NORMAL_ROOT,
-];
-
-const getMockSettingsHandler = (settings: ExtensionSettings) => ({
-  getValue: (key: string) => {
+const getMockExtSettingGetter = (settings: ExtensionSettings = MOCK_EXTENSION_SETTINGS) => {
+  return (key: string) => {
     return settings[key];
+  };
+};
+
+interface MockContextOptions {
+  settings?: ExtensionSettings;
+  api?: Partial<APIType>;
+  now?: () => number;
+}
+
+export const getMockContext = (options: MockContextOptions): Context => ({
+  logger: MOCK_LOGGER,
+  getExtSetting: getMockExtSettingGetter(options.settings),
+  api: {
+    ...MOCK_API,
+    ...options.api,
   },
+  now: options.now || (() => Date.now()),
 });
 
-export const MOCK_EXTENSION_SETTINGS: ExtensionSettings = {
-  modification_count_mode: ModificationCountMode.DEVICE,
-  monitoring_mode: MonitoringMode.INCOMING,
-  delay_seconds: 30,
-};
-
-export const getMockMonitor = async (settings: ExtensionSettings = MOCK_EXTENSION_SETTINGS) => {
-  const api: ReturnType<typeof API> = {
-    getSettingValue: (key) => {
-      if (key === 'report_blocked_share') {
-        return Promise.resolve(true);
-      }
-
-      return Promise.reject('Setting key not supported');
-    },
-    getShareRoots: () => {
-      return Promise.resolve(MOCK_SHARE_ROOTS);
-    },
-    refreshSharePaths: () => {
-      return Promise.resolve();
-    },
-    validateSharePath: () => {
-      return Promise.resolve();
-    }
-  }
-
-  const monitor = await Monitor(MOCK_LOGGER, getMockSettingsHandler(settings), api);
+export const getMockMonitor = async (options: MockContextOptions) => {
+  const monitor = await Monitor(getMockContext(options));
   return monitor;
 };
+
+export const getReadyMockMonitor = async (options: MockContextOptions) => {
+  const monitor = await Monitor(getMockContext(options));
+  
+  await waitForExpect(() => {
+    expect(monitor.getWatchPaths()).toEqual(toWatchPaths(MOCK_SHARE_ROOTS));
+  }, DEFAULT_EXPECT_TIMEOUT);
+
+  return monitor;
+};
+
 
 // Chokidar will also watch the root dir
 export const toWatchPaths = (roots: ShareRootEntryBase[]) => {
   return [
-    path.join(__dirname, 'data'),
+    path.join(__dirname, 'mocks', 'data'),
     ...roots.map(r => r.path),
   ]
+};
+
+export const maybeRemoveFile = (path: string) => {
+  try {
+    unlinkSync(path);
+  } catch (e) {
+    // ...
+  }
+};
+
+export const triggerFileChange = async (change: () => void, monitor: AsyncReturnType<typeof Monitor>) => {
+  const initialChangeCount = monitor.getStats().totalChanges;
+  change();
+
+  await waitForExpect(() => {
+    expect(monitor.getStats().totalChanges).toBe(initialChangeCount + 1);
+  }, DEFAULT_EXPECT_TIMEOUT);
 };
