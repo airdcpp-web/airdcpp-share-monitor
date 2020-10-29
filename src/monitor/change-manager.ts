@@ -30,12 +30,13 @@ export const ChangeManager = (context: Context) => {
 
     const existingModifyInfo = findModifyInfo(path);
     if (existingModifyInfo) {
-      PathModifyInfo.onModified(existingModifyInfo, directoryPath, context);
+      PathModifyInfo.onModified(existingModifyInfo, directoryPath, path, context);
     } else {
-      const newModifyInfo = {
+      const newModifyInfo: PathModifyInfo.ModifyInfo = {
         path: directoryPath,
         rootPath,
         lastModification: now(),
+        changedPaths: new Set([ path ]),
       };
 
       modifyInfos.push(newModifyInfo);
@@ -43,16 +44,16 @@ export const ChangeManager = (context: Context) => {
   }
 
   // New file/directory was created
-  const onPathCreated = (path: string, isDirectory: boolean, rootPath: string) => {
+  const onPathChanged = (path: string, isDirectory: boolean, rootPath: string) => {
     queueChange(path, isDirectory, rootPath);
   };
 
   // File/directory was deleted
   const onPathRemoved = async (path: string, isDirectory: boolean, rootPath: string) => {
-    if (!await api.isPathShared(path)) {
+    /*if (!await api.isPathShared(getFilePath(path))) {
       logger.verbose(`Skipping removal event for path ${path}, not shared`);
       return;
-    }
+    }*/
 
     queueChange(path, isDirectory, rootPath);
   };
@@ -63,7 +64,7 @@ export const ChangeManager = (context: Context) => {
       return 0;
     }
 
-    const toHandle = modifyInfos
+    const toProcess = modifyInfos
       .filter(mi => {
         if (forced) {
           return true;
@@ -76,17 +77,18 @@ export const ChangeManager = (context: Context) => {
         return false;
       });
 
-    if (!!toHandle.length) {
+    if (!!toProcess.length) {
       const reportIgnored = await api.getSettingValue('report_blocked_share');
-      for (const mi of toHandle) {
+      for (const mi of toProcess) {
+        logger.verbose(`Processing path ${mi.path} (last modification ${context.now() - mi.lastModification} ms ago)`);
         await PathModifyInfo.process(mi, reportIgnored, context);
       }
 
-      modifyInfos = modifyInfos.filter(mi => toHandle.indexOf(mi) === -1);
+      modifyInfos = modifyInfos.filter(mi => toProcess.indexOf(mi) === -1);
     }
     
-    logger.verbose(`Flush completed: processed ${toHandle.length} path infos, skipped ${modifyInfos.length} path infos`);
-    return toHandle.length;
+    logger.verbose(`Flush completed: processed ${toProcess.length} path infos, skipped ${modifyInfos.length} path infos`);
+    return toProcess.length;
   };
 
   // Process queued modify infos
@@ -118,11 +120,18 @@ export const ChangeManager = (context: Context) => {
     };
   };
 
+  // Check whether changes have been received for a path
+  const hasPendingPathChange = (path: string) => {
+    const found = modifyInfos.find(mi => mi.rootPath === path || mi.changedPaths.has(path));
+    return !!found;
+  };
+
   return {
     getPendingChanges,
+    hasPendingPathChange,
     getStats,
 
-    onPathCreated,
+    onPathChanged,
     onPathRemoved,
 
     flush,

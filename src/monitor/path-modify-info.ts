@@ -9,15 +9,17 @@ export interface ModifyInfo {
   path: string;
   rootPath: string;
   lastModification: number;
+  changedPaths: Set<string>;
 }
 
 // New change was made to an existing modify info directory
-export const onModified = (mi: ModifyInfo, directoryPath: string, { now }: Context) => {
+export const onModified = (mi: ModifyInfo, directoryPath: string, path: string, { now }: Context) => {
   if (isSub(mi.path, directoryPath)) {
     mi.path = directoryPath;
   }
 
   mi.lastModification = now();
+  mi.changedPaths.add(path);
 };
 
 // Check if enough time has ellapsed since the last modification
@@ -52,6 +54,8 @@ export const allowProcess = (mi: ModifyInfo, allModifyInfos: ModifyInfo[], { now
     if (!ok) {
       return false;
     }
+  } else {
+    throw new Error(`Unknown modification count mode ${countMode}`);
   }
 
   return true;

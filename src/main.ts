@@ -3,7 +3,7 @@
 // Entry point for extension-specific code
 
 // Helper method for adding context menu items, docs: https://github.com/airdcpp-web/airdcpp-apisocket-js/blob/master/GUIDE.md#addContextMenuItems
-import { APISocket } from 'airdcpp-apisocket';
+import { addContextMenuItems, APISocket } from 'airdcpp-apisocket';
 
 // Settings manager docs: https://github.com/airdcpp-web/airdcpp-extension-settings-js
 //@ts-ignore
@@ -47,6 +47,28 @@ const Extension = function (socket: APISocket, extension: ExtensionEntryData) {
     socket.addListener('share_roots', 'share_root_created', monitor.onRootAdded);
     socket.addListener('share_roots', 'share_root_removed', monitor.onRootRemoved);
     socket.addListener('share_roots', 'share_root_updated', monitor.onRootUpdated);
+
+    const subscriberInfo = {
+      id: extension.name,
+      name: 'Share monitor',
+    };
+    
+    addContextMenuItems(
+      socket,
+      [
+        {
+          id: 'scan_missing_extra',
+          title: `Process pending changes`,
+          icon: {
+            semantic: 'green checkmark'
+          },
+          filter: () => !!monitor.getPendingChanges().length,
+          onClick: () => monitor.flush(true),
+        }
+      ],
+      'extension',
+      subscriberInfo,
+    );
   };
 };
 

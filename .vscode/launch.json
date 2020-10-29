@@ -26,6 +26,9 @@
 			"stopOnEntry": false,
 			"runtimeExecutable": null,
 			"sourceMaps": true,
+      "args": [
+        "-t", "root changes",
+      ],
 			"runtimeArgs": [
 				"--inspect-brk=5858",
 				"./node_modules/jest-cli/bin/jest.js",

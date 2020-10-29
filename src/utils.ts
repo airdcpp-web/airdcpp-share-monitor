@@ -49,3 +49,7 @@ export const isParentOrExact = (testParent: string, sub: string) => {
 
   return sub.startsWith(testParent);
 }
+
+export const sleep = (ms: number) => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};

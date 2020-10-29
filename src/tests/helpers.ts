@@ -1,12 +1,12 @@
 import { Monitor, } from '../monitor/monitor';
-import path from 'path';
 import { APIType } from 'src/api';
 import { AsyncReturnType, ExtensionSettings, ShareRootEntryBase } from 'src/types';
-import { unlinkSync } from 'fs';
+import { unlinkSync, writeFileSync } from 'fs';
 import { Context } from 'src/context';
 import { MOCK_API, MOCK_EXTENSION_SETTINGS, MOCK_LOGGER } from './mocks/mock-context-defaults';
 import waitForExpect from 'wait-for-expect';
 import { MOCK_SHARE_ROOTS } from './mocks/mock-data';
+import { sleep } from 'src/utils';
 
 
 export const DEFAULT_EXPECT_TIMEOUT = 1500;
@@ -38,9 +38,9 @@ export const getMockMonitor = async (options: MockContextOptions) => {
   return monitor;
 };
 
-export const getReadyMockMonitor = async (options: MockContextOptions) => {
+export const getReadyMockMonitor = async (options: MockContextOptions = {}) => {
   const monitor = await Monitor(getMockContext(options));
-  
+
   await waitForExpect(() => {
     expect(monitor.getWatchPaths()).toEqual(toWatchPaths(MOCK_SHARE_ROOTS));
   }, DEFAULT_EXPECT_TIMEOUT);
@@ -52,7 +52,6 @@ export const getReadyMockMonitor = async (options: MockContextOptions) => {
 // Chokidar will also watch the root dir
 export const toWatchPaths = (roots: ShareRootEntryBase[]) => {
   return [
-    path.join(__dirname, 'mocks', 'data'),
     ...roots.map(r => r.path),
   ]
 };
@@ -65,11 +64,13 @@ export const maybeRemoveFile = (path: string) => {
   }
 };
 
-export const triggerFileChange = async (change: () => void, monitor: AsyncReturnType<typeof Monitor>) => {
-  const initialChangeCount = monitor.getStats().totalChanges;
-  change();
+export const triggerCreateFileChange = async (path: string, monitor: AsyncReturnType<typeof Monitor>) => {
+  writeFileSync(path, 'empty');
+
+  // Wait for the change events to arrive
+  await sleep(100);
 
   await waitForExpect(() => {
-    expect(monitor.getStats().totalChanges).toBe(initialChangeCount + 1);
+    expect(monitor.hasPendingPathChange(path)).toBe(true);
   }, DEFAULT_EXPECT_TIMEOUT);
 };

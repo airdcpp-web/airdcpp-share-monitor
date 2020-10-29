@@ -1,33 +1,34 @@
+import { ModificationCountMode, MonitoringMode } from './types';
 
 export const SettingDefinitions = [
   {
     key: 'modification_count_mode',
     title: 'Count the last modification time',
-    default_value: 'device',
+    default_value: ModificationCountMode.ROOT,
     type: 'string',
     options: [
       {
-        id: 'directory',
+        id: ModificationCountMode.DIRECTORY,
         name: 'On per-directory basis'
       }, {
-        id: 'device',
-        name: 'On per-device basis'
+        id: ModificationCountMode.ROOT,
+        name: 'On per-root basis'
       }, {
-        id: 'all',
+        id: ModificationCountMode.ANY,
         name: 'From any modification'
       }, 
     ]
   }, {
     key: 'monitoring_mode',
     title: 'Monitoring mode',
-    default_value: 'all',
+    default_value: MonitoringMode.ALL,
     type: 'string',
     options: [
       {
-        id: 'all',
+        id: MonitoringMode.ALL,
         name: 'All directories'
       }, {
-        id: 'incoming',
+        id: MonitoringMode.INCOMING,
         name: 'Incoming directories only'
       }, 
     ]
