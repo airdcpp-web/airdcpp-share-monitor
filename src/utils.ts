@@ -1,7 +1,13 @@
 import path from 'path';
 
 
-/*export const isDirectory = (fullPath: string): boolean => {
+/*export const getLastDirectory = (fullPath: string): string => {
+  const path = isDirectory(fullPath) ? fullPath : getParentPath(fullPath);
+  const result = path.match(/([^\\\/]+)[\\\/]$/);
+  return result ? result[1] : fullPath;
+};*/
+
+export const isDirectory = (fullPath: string): boolean => {
   return fullPath ? !!fullPath.match(/[\\\/]$/) : false;
 };
 
@@ -12,12 +18,6 @@ export const getParentPath = (fullPath: string): string => {
 
   return getFilePath(fullPath);
 };
-
-export const getLastDirectory = (fullPath: string): string => {
-  const path = isDirectory(fullPath) ? fullPath : getParentPath(fullPath);
-  const result = path.match(/([^\\\/]+)[\\\/]$/);
-  return result ? result[1] : fullPath;
-};*/
 
 export const getFilePath = (fullPath: string): string => {
   return fullPath.replace(/[^\\\/]*$/, '');

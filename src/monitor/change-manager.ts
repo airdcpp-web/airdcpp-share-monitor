@@ -23,7 +23,7 @@ export const ChangeManager = (context: Context) => {
   };
 
   // Queue a new change for processing
-  const queueChange = (path: string, isDirectory: boolean, rootPath: string) => {
+  const queueChange = (path: string, isDirectory: boolean, shareRootPath: string) => {
     totalChanges++;
 
     const directoryPath = isDirectory ? path : getFilePath(path);
@@ -34,7 +34,7 @@ export const ChangeManager = (context: Context) => {
     } else {
       const newModifyInfo: PathModifyInfo.ModifyInfo = {
         path: directoryPath,
-        rootPath,
+        shareRootPath,
         lastModification: now(),
         changedPaths: new Set([ path ]),
       };
@@ -44,18 +44,18 @@ export const ChangeManager = (context: Context) => {
   }
 
   // New file/directory was created
-  const onPathChanged = (path: string, isDirectory: boolean, rootPath: string) => {
-    queueChange(path, isDirectory, rootPath);
+  const onPathChanged = (path: string, isDirectory: boolean, shareRootPath: string) => {
+    queueChange(path, isDirectory, shareRootPath);
   };
 
   // File/directory was deleted
-  const onPathRemoved = async (path: string, isDirectory: boolean, rootPath: string) => {
+  const onPathRemoved = async (path: string, isDirectory: boolean, shareRootPath: string) => {
     /*if (!await api.isPathShared(getFilePath(path))) {
       logger.verbose(`Skipping removal event for path ${path}, not shared`);
       return;
     }*/
 
-    queueChange(path, isDirectory, rootPath);
+    queueChange(path, isDirectory, shareRootPath);
   };
 
   // Process queued modify infos (if they are ready for it)
@@ -122,7 +122,7 @@ export const ChangeManager = (context: Context) => {
 
   // Check whether changes have been received for a path
   const hasPendingPathChange = (path: string) => {
-    const found = modifyInfos.find(mi => mi.rootPath === path || mi.changedPaths.has(path));
+    const found = modifyInfos.find(mi => mi.path === path || mi.changedPaths.has(path));
     return !!found;
   };
 

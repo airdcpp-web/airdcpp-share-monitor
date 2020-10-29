@@ -1,7 +1,7 @@
 import { Monitor, } from '../monitor/monitor';
 import { APIType } from 'src/api';
 import { AsyncReturnType, ExtensionSettings, ShareRootEntryBase } from 'src/types';
-import { unlinkSync, writeFileSync } from 'fs';
+import { unlinkSync, rmdirSync } from 'fs';
 import { Context } from 'src/context';
 import { MOCK_API, MOCK_EXTENSION_SETTINGS, MOCK_LOGGER } from './mocks/mock-context-defaults';
 import waitForExpect from 'wait-for-expect';
@@ -48,8 +48,6 @@ export const getReadyMockMonitor = async (options: MockContextOptions = {}) => {
   return monitor;
 };
 
-
-// Chokidar will also watch the root dir
 export const toWatchPaths = (roots: ShareRootEntryBase[]) => {
   return [
     ...roots.map(r => r.path),
@@ -64,13 +62,30 @@ export const maybeRemoveFile = (path: string) => {
   }
 };
 
-export const triggerCreateFileChange = async (path: string, monitor: AsyncReturnType<typeof Monitor>) => {
-  writeFileSync(path, 'empty');
+export const maybeRemoveDirectory = (path: string) => {
+  try {
+    rmdirSync(path);
+  } catch (e) {
+    // ...
+  }
+};
+
+type TriggerChange = <ArgsT extends unknown[]>(
+  path: string, 
+  monitor: AsyncReturnType<typeof Monitor>, 
+  func: (path: string, ...args: ArgsT) => void, 
+  ...args: ArgsT
+) => Promise<void>;
+
+export const triggerFsChange: TriggerChange = async (path, monitor, func, ...args) => {
+  func(path, ...args);
 
   // Wait for the change events to arrive
   await sleep(100);
 
   await waitForExpect(() => {
-    expect(monitor.hasPendingPathChange(path)).toBe(true);
+    // Directory deletions will be fired without the end separator
+    const checkPath = (func as any) === rmdirSync ? path.substr(0, path.length - 1) : path;
+    expect(monitor.hasPendingPathChange(checkPath)).toBe(true);
   }, DEFAULT_EXPECT_TIMEOUT);
 };

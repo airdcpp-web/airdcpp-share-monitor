@@ -7,7 +7,7 @@ import { isSub } from '../utils';
 
 export interface ModifyInfo {
   path: string;
-  rootPath: string;
+  shareRootPath: string;
   lastModification: number;
   changedPaths: Set<string>;
 }
@@ -39,7 +39,7 @@ export const allowProcess = (mi: ModifyInfo, allModifyInfos: ModifyInfo[], { now
 
   if (countMode === ModificationCountMode.ROOT) {
     const ok = allModifyInfos
-      .filter(other => other.rootPath === mi.rootPath)
+      .filter(other => other.shareRootPath === mi.shareRootPath)
       .every(checkDelay(delaySeconds, curTime));
 
     if (!ok) {

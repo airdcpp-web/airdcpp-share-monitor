@@ -106,7 +106,7 @@ export const Monitor = async (context: Context) => {
       // Paths have no end separator, we don't know whether if it's a file or a directory
       // Let it through without the end separator even if it's a directory, so that the parent directory will be used for refreshing
       // TODO: possibly share API could handle existence checks without the end separator so that we could get the type from there
-      changeManager.onPathRemoved(pathRaw, true, rootPath);
+      changeManager.onPathRemoved(pathRaw, false, rootPath);
     }
   };
 

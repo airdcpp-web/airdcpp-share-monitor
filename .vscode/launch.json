@@ -27,7 +27,7 @@
 			"runtimeExecutable": null,
 			"sourceMaps": true,
       "args": [
-        "-t", "root changes",
+        // "-t", "handle directory creations",
       ],
 			"runtimeArgs": [
 				"--inspect-brk=5858",
