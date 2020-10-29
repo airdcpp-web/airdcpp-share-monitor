@@ -31,6 +31,11 @@ export const getMockContext = (options: MockContextOptions): Context => ({
     ...options.api,
   },
   now: options.now || (() => Date.now()),
+  sessionInfo: {
+    system_info: {
+      api_feature_level: 6,
+    }
+  }
 });
 
 export const getMockMonitor = async (options: MockContextOptions) => {

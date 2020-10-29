@@ -13,13 +13,8 @@ import { CONFIG_VERSION, SettingDefinitions } from './settings';
 
 import { Monitor } from './monitor/monitor';
 import { API } from './api';
+import { SessionInfo } from './context';
 
-
-interface SessionInfo {
-  system_info: {
-    path_separator: string;
-  }
-}
 
 // Entry point docs: https://github.com/airdcpp-web/airdcpp-extension-js#extension-entry-structure
 // Socket reference: https://github.com/airdcpp-web/airdcpp-apisocket-js/blob/master/GUIDE.md
@@ -39,7 +34,8 @@ const Extension = function (socket: APISocket, extension: ExtensionEntryData) {
       logger: socket.logger, 
       getExtSetting: settings.getValue,
       api,
-      now: Date.now
+      now: Date.now,
+      sessionInfo,
     });
 
     monitor.start();

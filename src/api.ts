@@ -4,14 +4,14 @@ import { SeverityEnum, ShareRootEntryBase } from './types';
 
 
 export const API = (socket: APISocket) => {
-  const getSettingValue = async (key: string) => {
-    const ret = await socket.post(
+  const getSettingValue = async (settingKey: string) => {
+    const ret = await socket.post<{ [key in typeof settingKey]: any; }>(
       'settings/get', { 
-        keys: [ key ]
+        keys: [ settingKey ]
       }
     );
 
-    return ret[0];
+    return ret[settingKey];
   };
 
   const getShareRoots = async (): Promise<ShareRootEntryBase[]> => {
