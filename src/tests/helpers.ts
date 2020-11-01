@@ -7,6 +7,7 @@ import { MOCK_API, MOCK_EXTENSION_SETTINGS, MOCK_LOGGER } from './mocks/mock-con
 import waitForExpect from 'wait-for-expect';
 import { MOCK_SHARE_ROOTS } from './mocks/mock-data';
 import { sleep } from 'src/utils';
+import { Logger } from 'airdcpp-apisocket';
 
 
 export const DEFAULT_EXPECT_TIMEOUT = 1500;
@@ -21,10 +22,14 @@ interface MockContextOptions {
   settings?: ExtensionSettings;
   api?: Partial<APIType>;
   now?: () => number;
+  logger?: Partial<Logger>;
 }
 
 export const getMockContext = (options: MockContextOptions): Context => ({
-  logger: MOCK_LOGGER,
+  logger: {
+    ...MOCK_LOGGER,
+    ...options.logger,
+  },
   getExtSetting: getMockExtSettingGetter(options.settings),
   api: {
     ...MOCK_API,

@@ -95,4 +95,30 @@ describe('Monitor', () => {
       expect(monitor.getWatchPaths()).toEqual(toWatchPaths(MOCK_SHARE_ROOTS));
     }, DEFAULT_EXPECT_TIMEOUT);
   });
+
+  test('should re-add failed roots for monitoring', async () => {
+    monitor = await getReadyMockMonitor({
+      logger: {
+        error: () => {
+          // Ignore
+        }
+      },
+    });
+
+    // Simulate error
+    monitor.onError(MOCK_NORMAL_ROOT.path, new Error('Mock error'));
+
+    await waitForExpect(() => {
+      expect(monitor.getWatchPaths()).toEqual(toWatchPaths([ MOCK_INCOMING_ROOT ]));
+    }, DEFAULT_EXPECT_TIMEOUT);
+    expect(monitor.getFailedRoots()).toEqual([ MOCK_NORMAL_ROOT.path ]);
+
+    // Re-add for monitoring
+    await monitor.checkFailedRoots();
+
+    await waitForExpect(() => {
+      expect(monitor.getWatchPaths()).toEqual(toWatchPaths(MOCK_SHARE_ROOTS));
+    }, DEFAULT_EXPECT_TIMEOUT);
+    expect(monitor.getFailedRoots()).toEqual([]);
+  });
 });
