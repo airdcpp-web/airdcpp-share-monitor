@@ -1,4 +1,4 @@
-import { MonitoringMode, SeverityEnum, ShareRootEntryBase } from '../types';
+import { AsyncReturnType, MonitoringMode, SeverityEnum, ShareRootEntryBase } from '../types';
 import { ChangeManager } from './change-manager';
 
 import watch from 'node-watch';
@@ -28,35 +28,36 @@ const watchOptions = {
 
 type WatchPaths = { [key in string]: ReturnType<typeof watch> }
 
-const initWatchers = async ({ api, getExtSetting, logger }: Context, createWatcher: (path: string) => ReturnType<typeof watch> | null) => {
-  const roots = await api.getShareRoots();
-
+const initWatchers = async ({ api, getExtSetting, logger }: Context, createWatcher: (path: string) => Promise<ReturnType<typeof watch> | null>) => {
   const mode: MonitoringMode = getExtSetting('monitoring_mode');
+  const validRoots = (await api.getShareRoots()).filter(root => useMonitoring(root, mode));
+
+  api.postEvent(`Adding ${validRoots.length} paths for monitoring...`, SeverityEnum.INFO);
+
   const watchPaths: WatchPaths = {};
-  for (const root of roots) {
-    if (useMonitoring(root, mode)) {
-      const watcher = createWatcher(root.path);
-      if (watcher) {
-        watchPaths[root.path] = watcher;
-      }
+  for (const root of validRoots) {
+    const watcher = await createWatcher(root.path);
+    if (watcher) {
+      watchPaths[root.path] = watcher;
     }
   }
 
   logger.verbose(`Monitoring started`, Object.keys(watchPaths));
   
-  logger.info(`${Object.keys(watchPaths).length} paths have been added for monitoring`);
+  api.postEvent(`${Object.keys(watchPaths).length} paths were added for monitoring`, SeverityEnum.INFO);
   return watchPaths;
 };
 
-const getModifiedPathInfo = (path: string, now: number) => {
+const getModifiedPathInfo = (path: string, { logger, now }: Context) => {
   try {
     const stat = statSync(path);
+    const curTime = now();
 
     // Change event is fired even when the file/folder is being accessed
     // Check whether the content has actually been changed (ignore this change otherwise)
     // https://github.com/nodejs/node/issues/21643#issuecomment-403716321
-    const modifiedMsAgo = now - stat.mtimeMs;
-    const statusChangedMsAgo = now - stat.ctimeMs;
+    const modifiedMsAgo = curTime - stat.mtimeMs;
+    const statusChangedMsAgo = curTime - stat.ctimeMs;
     if (modifiedMsAgo > MIN_PATH_MODIFICATION_AGE_MS && statusChangedMsAgo > MIN_PATH_MODIFICATION_AGE_MS) {
       return null;
     }
@@ -65,13 +66,49 @@ const getModifiedPathInfo = (path: string, now: number) => {
       isDirectory: stat.isDirectory(),
     };
   } catch (e) {
+    logger.verbose(`Skipping change event for path ${path}: ${e.message}`);
     return null;
   }
+};
+
+const getDeletedFileInfo = async (path: string, { api, sessionInfo }: Context) => {
+  return {
+    isDirectory: false,
+  };
+
+  // Path notifications have no end separator and we don't know whether if it's a file or a directory
+  // Try to check it through the API
+
+  /*if (sessionInfo.system_info.api_feature_level < 6) {
+    // There's no shared path check in older API versions
+    // Let it through without the end separator even if it's a directory, so that the parent directory will be used for refreshing
+    return {
+      isDirectory: false,
+    }
+  }
+
+  // It's a file?
+  if (await api.isPathShared(path)) {
+    return {
+      isDirectory: false,
+    }
+  }
+
+  // Maybe it's a directory?
+  if (await api.isPathShared(ensureEndSeparator(path))) {
+    return {
+      isDirectory: true,
+    }
+  }
+
+  // Not shared, ignore
+  return null;*/
 };
 
 export const Monitor = async (context: Context) => {
   const { logger, api, getExtSetting } = context;
   const changeManager = ChangeManager(context);
+  let watchPaths: WatchPaths;
 
   // Find root path for a changed file/directory path
   const parseRootPath = (path: string) => {
@@ -79,13 +116,20 @@ export const Monitor = async (context: Context) => {
   };
 
   // Watcher error handler
-  const onError = (error: Error) => {
-    logger.error('ERROR: ' + error.message);
-    api.postEvent(`Path error: ${error.message}`, SeverityEnum.ERROR);
+  const onError = (path: string, error: Error) => {
+    logger.error(`ERROR ${path}: ${error.message}`, (error as any).code, error);
+    api.postEvent(`Error occurred for path ${path}: ${error.message}`, SeverityEnum.ERROR);
+  };
+
+  const onClose = (path: string) => {
+    logger.verbose(`Monitoring stopped for path ${path}`);
+
+    const { [path]: deleted, ...newWatchPaths } = watchPaths;
+    watchPaths = newWatchPaths;
   };
 
   // Watcher change handler
-  const onChange = (eventName: 'update' | 'remove', pathRaw: string) => {
+  const onChange = async (eventName: 'update' | 'remove', pathRaw: string) => {
     const rootPath = parseRootPath(pathRaw);
     if (!rootPath) {
       logger.error(`No root found for path ${pathRaw}`, Object.keys(watchPaths));
@@ -95,44 +139,55 @@ export const Monitor = async (context: Context) => {
     logger.verbose(`Path ${pathRaw}: ${eventName} (root ${rootPath})`);
 
     if (eventName === 'update') {
-      const pathInfo = getModifiedPathInfo(pathRaw, context.now());
+      const pathInfo = getModifiedPathInfo(pathRaw, context);
       if (!pathInfo) {
+        logger.verbose(`Skipping removal event for path ${pathRaw}, not found`);
         return;
       }
 
       const path = pathInfo.isDirectory ? ensureEndSeparator(pathRaw) : pathRaw;
       changeManager.onPathChanged(path, pathInfo.isDirectory, rootPath);
     } else if (eventName === 'remove') {
-      // Paths have no end separator, we don't know whether if it's a file or a directory
-      // Let it through without the end separator even if it's a directory, so that the parent directory will be used for refreshing
-      // TODO: possibly share API could handle existence checks without the end separator so that we could get the type from there
-      changeManager.onPathRemoved(pathRaw, false, rootPath);
+      const pathInfo = await getDeletedFileInfo(pathRaw, context);
+      if (!pathInfo) {
+        return;
+      }
+
+      const path = pathInfo.isDirectory ? ensureEndSeparator(pathRaw) : pathRaw;
+      changeManager.onPathRemoved(path, pathInfo.isDirectory, rootPath);
     }
   };
 
   
-  const createWatcher = (path: string) => {
-    try {
-      const watcher = watch(path, watchOptions)
-        .on('change', onChange)
-        .on('error', onError);
-      return watcher;
-    } catch (e) {
-      onError(e);
-      return null;
-    }
+  const createWatcher = async (path: string): Promise<ReturnType<typeof watch> | null> => {
+    return new Promise((resolve, reject) => {
+      try {
+        logger.verbose(`Adding path ${path} for monitoring...`);
+
+        const watcher = watch(path, watchOptions);
+        watcher
+          .on('ready', () => {
+            logger.verbose(`Path ${path} was added for monitoring`);
+            resolve(watcher);
+          })
+          .on('change', onChange)
+          .on('error', onError.bind(this, path))
+          .on('close', onClose.bind(this, path));
+      } catch (e) {
+        onError(path, e);
+        resolve(null);
+      }
+    });
   };
 
-  let watchPaths = await initWatchers(context, createWatcher);
-
-  const addRoot = (root: ShareRootEntryBase) => {
+  const addRoot = async (root: ShareRootEntryBase) => {
     if (watchPaths[root.path]) {
       return;
     }
 
     logger.verbose(`Adding root ${root.path} for monitoring`);
 
-    const watcher = createWatcher(root.path);
+    const watcher = await createWatcher(root.path);
     if (watcher) {
       watchPaths = {
         ...watchPaths,
@@ -198,12 +253,10 @@ export const Monitor = async (context: Context) => {
   };
 
   const getWatchPaths = () => {
-    const ret = Object.keys(watchPaths)
-      .filter(k => !watchPaths[k].isClosed() && (watchPaths[k] as any)._isReady);
-
-    return ret;
+    return Object.keys(watchPaths);
   };
 
+  watchPaths = await initWatchers(context, createWatcher);
   return {
     onRootAdded,
     onRootRemoved,
@@ -218,3 +271,5 @@ export const Monitor = async (context: Context) => {
     hasPendingPathChange: changeManager.hasPendingPathChange,
   };
 };
+
+export type MonitorType = AsyncReturnType<typeof Monitor>;

@@ -5,14 +5,14 @@ import { getReadyMockMonitor, maybeRemoveFile, maybeRemoveDirectory, triggerFsCh
 import { MOCK_INCOMING_ROOT, MOCK_NORMAL_ROOT } from './mocks/mock-data';
 import { MOCK_EXTENSION_SETTINGS } from './mocks/mock-context-defaults';
 
-import { Monitor } from 'src/monitor/monitor';
+import { MonitorType } from 'src/monitor/monitor';
 
-import { AsyncReturnType, ModificationCountMode } from 'src/types';
+import { ModificationCountMode } from 'src/types';
 import { ensureEndSeparator, getFilePath, getParentPath } from 'src/utils';
 
 
 describe('Change manager', () => {
-  let monitor: AsyncReturnType<typeof Monitor>;
+  let monitor: MonitorType;
 
   const filePathIncoming1 = path.join(MOCK_INCOMING_ROOT.path, 'file_incoming1');
   const filePathIncoming2 = path.join(MOCK_INCOMING_ROOT.path, 'file_incoming2');

@@ -47,7 +47,8 @@ export const getReadyMockMonitor = async (options: MockContextOptions = {}) => {
   const monitor = await Monitor(getMockContext(options));
 
   await waitForExpect(() => {
-    expect(monitor.getWatchPaths()).toEqual(toWatchPaths(MOCK_SHARE_ROOTS));
+    const watchPaths = monitor.getWatchPaths();
+    expect(watchPaths).toEqual(toWatchPaths(MOCK_SHARE_ROOTS));
   }, DEFAULT_EXPECT_TIMEOUT);
 
   return monitor;

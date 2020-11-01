@@ -11,7 +11,7 @@ import SettingsManager from 'airdcpp-extension-settings';
 import { ExtensionEntryData } from 'airdcpp-extension';
 import { CONFIG_VERSION, SettingDefinitions } from './settings';
 
-import { Monitor } from './monitor/monitor';
+import { Monitor, MonitorType } from './monitor/monitor';
 import { API } from './api';
 import { SessionInfo } from './context';
 
@@ -26,11 +26,14 @@ const Extension = function (socket: APISocket, extension: ExtensionEntryData) {
     definitions: SettingDefinitions,
   });
 
+  let monitor: MonitorType | undefined;
+
   extension.onStart = async (sessionInfo: SessionInfo) => {
     await settings.load();
 
     const api = API(socket);
-    const monitor = await Monitor({
+
+    monitor = await Monitor({
       logger: socket.logger, 
       getExtSetting: settings.getValue,
       api,
@@ -58,13 +61,23 @@ const Extension = function (socket: APISocket, extension: ExtensionEntryData) {
           icon: {
             semantic: 'green checkmark'
           },
-          filter: () => !!monitor.getPendingChanges().length,
-          onClick: () => monitor.flush(true),
+          filter: () => !!monitor!.getPendingChanges().length,
+          onClick: () => monitor!.flush(true),
         }
       ],
       'extension',
       subscriberInfo,
     );
+  };
+
+  extension.onStop = () => {
+    if (monitor && process.env.NODE_ENV !== 'production') {
+      // Clean up before possible reconnect when running an unmanaged extension
+      // It may take quite a long time on Linux as all watchers need to be removed 
+      // recursively so don't do this for managed ones
+      monitor.stop();
+      monitor = undefined;
+    }
   };
 };
 

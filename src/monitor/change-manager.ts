@@ -50,10 +50,7 @@ export const ChangeManager = (context: Context) => {
 
   // File/directory was deleted
   const onPathRemoved = async (path: string, isDirectory: boolean, shareRootPath: string) => {
-    /*if (!await api.isPathShared(getFilePath(path))) {
-      logger.verbose(`Skipping removal event for path ${path}, not shared`);
-      return;
-    }*/
+
 
     queueChange(path, isDirectory, shareRootPath);
   };

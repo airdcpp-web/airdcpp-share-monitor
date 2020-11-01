@@ -1,7 +1,7 @@
 import waitForExpect from 'wait-for-expect';
 
-import { Monitor } from 'src/monitor/monitor';
-import { AsyncReturnType, MonitoringMode } from 'src/types';
+import { MonitorType } from 'src/monitor/monitor';
+import { MonitoringMode } from 'src/types';
 
 import { DEFAULT_EXPECT_TIMEOUT, getMockMonitor, getReadyMockMonitor, toWatchPaths } from './helpers';
 import { MOCK_DUMMY_DIR_PATH, MOCK_INCOMING_ROOT, MOCK_NORMAL_ROOT, MOCK_SHARE_ROOTS } from './mocks/mock-data';
@@ -16,7 +16,7 @@ const DUMMY_SHARE_ROOT = {
 };
 
 describe('Monitor', () => {
-  let monitor: AsyncReturnType<typeof Monitor>;
+  let monitor: MonitorType;
 
   afterEach(async () => {
     if (monitor) {
@@ -52,7 +52,6 @@ describe('Monitor', () => {
 
   
   test('should start monitoring added roots', async () => {
-    jest.useFakeTimers();
     monitor = await getReadyMockMonitor();
 
     monitor.onRootAdded(DUMMY_SHARE_ROOT);
@@ -66,7 +65,6 @@ describe('Monitor', () => {
   });
 
   test('should remove roots from monitoring', async () => {
-    jest.useFakeTimers();
     monitor = await getReadyMockMonitor();
 
     monitor.onRootRemoved(MOCK_NORMAL_ROOT);
