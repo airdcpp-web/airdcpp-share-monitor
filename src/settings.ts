@@ -22,6 +22,7 @@ export const SettingDefinitions = [
     key: 'monitoring_mode',
     title: 'Monitoring mode',
     default_value: MonitoringMode.ALL,
+    help: 'Extension must be restarted for the new mode to take effect',
     type: 'string',
     options: [
       {
