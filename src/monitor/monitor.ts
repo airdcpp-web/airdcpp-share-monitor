@@ -61,8 +61,7 @@ const getModifiedPathInfo = (path: string, { logger, now }: Context) => {
     // Check whether the content has actually been changed (ignore this change otherwise)
     // https://github.com/nodejs/node/issues/21643#issuecomment-403716321
     const modifiedMsAgo = curTime - stat.mtimeMs;
-    const statusChangedMsAgo = curTime - stat.ctimeMs;
-    if (modifiedMsAgo > MIN_PATH_MODIFICATION_AGE_MS && statusChangedMsAgo > MIN_PATH_MODIFICATION_AGE_MS) {
+    if (modifiedMsAgo > MIN_PATH_MODIFICATION_AGE_MS) {
       return null;
     }
 
