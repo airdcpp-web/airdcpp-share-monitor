@@ -273,7 +273,7 @@ export const Monitor = async (context: Context) => {
   };
 
   const waitStopped = () => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise<void>(async (resolve, reject) => {
       for (;;) {
         if (!getWatchPaths().length) {
           resolve();
