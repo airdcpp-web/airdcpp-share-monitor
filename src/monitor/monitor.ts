@@ -4,8 +4,8 @@ import { ChangeManager } from './change-manager';
 import watch from 'node-watch';
 import { ensureEndSeparator, isParentOrExact, sleep } from '../utils';
 
-import { statSync } from 'fs';
 import { Context } from '../context';
+import { getDeletedFileInfo, getModifiedPathInfo } from './change-type-parser';
 
 
 // Check whether monitoring should be enabled for the root
@@ -18,7 +18,6 @@ const useMonitoring = (root: ShareRootEntryBase, mode: MonitoringMode) => {
 };
 
 export const WATCH_DELAY_MS = 0;
-export const MIN_PATH_MODIFICATION_AGE_MS = 1000;
 const FAILED_ROOT_CHECK_INTERVAL_SECONDS = 60;
 
 const watchOptions = {
@@ -52,62 +51,6 @@ const initWatchers = async (
   return watchPaths;
 };
 
-const getModifiedPathInfo = (path: string, { logger, now }: Context) => {
-  try {
-    const stat = statSync(path);
-    const curTime = now();
-
-    // Change event is fired even when the file/folder is being accessed
-    // Check whether the content has actually been changed (ignore this change otherwise)
-    // https://github.com/nodejs/node/issues/21643#issuecomment-403716321
-    const modifiedMsAgo = curTime - stat.mtimeMs;
-    if (modifiedMsAgo > MIN_PATH_MODIFICATION_AGE_MS) {
-      return null;
-    }
-
-    return {
-      isDirectory: stat.isDirectory(),
-    };
-  } catch (e) {
-    logger.verbose(`Skipping change event for path ${path}: ${e.message}`);
-    return null;
-  }
-};
-
-const getDeletedFileInfo = async (path: string, { api, sessionInfo }: Context) => {
-  return {
-    isDirectory: false,
-  };
-
-  // Path notifications have no end separator and we don't know whether if it's a file or a directory
-  // Try to check it through the API
-
-  /*if (sessionInfo.system_info.api_feature_level < 6) {
-    // There's no shared path check in older API versions
-    // Let it through without the end separator even if it's a directory, so that the parent directory will be used for refreshing
-    return {
-      isDirectory: false,
-    }
-  }
-
-  // It's a file?
-  if (await api.isPathShared(path)) {
-    return {
-      isDirectory: false,
-    }
-  }
-
-  // Maybe it's a directory?
-  if (await api.isPathShared(ensureEndSeparator(path))) {
-    return {
-      isDirectory: true,
-    }
-  }
-
-  // Not shared, ignore
-  return null;*/
-};
-
 export const Monitor = async (context: Context) => {
   const { logger, api, getExtSetting } = context;
   const changeManager = ChangeManager(context);
@@ -122,7 +65,7 @@ export const Monitor = async (context: Context) => {
 
   // Watcher error handler
   const onError = (path: string, error: Error) => {
-    logger.error(`ERROR ${path}: ${error.message}`, (error as any).code, error);
+    logger.error(`ERROR: path ${path} (${error.message})`, (error as any).code, error);
     api.postEvent(`Error occurred for path ${path}: ${error.message} (removing from monitoring)`, SeverityEnum.ERROR);
 
     watchPaths[path].close();
@@ -144,16 +87,13 @@ export const Monitor = async (context: Context) => {
   const onChange = async (eventName: 'update' | 'remove', pathRaw: string) => {
     const rootPath = parseRootPath(pathRaw);
     if (!rootPath) {
-      logger.error(`No root found for path ${pathRaw}`, Object.keys(watchPaths));
+      logger.error(`${eventName.toLocaleUpperCase()}, ERROR: no root found for path ${pathRaw}`, Object.keys(watchPaths));
       return;
     }
-
-    logger.verbose(`Path ${pathRaw}: ${eventName} (root ${rootPath})`);
 
     if (eventName === 'update') {
       const pathInfo = getModifiedPathInfo(pathRaw, context);
       if (!pathInfo) {
-        logger.verbose(`Skipping removal event for path ${pathRaw}, not found`);
         return;
       }
 
