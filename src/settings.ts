@@ -35,8 +35,7 @@ export const SettingDefinitions = [
     ]
   }, {
     key: 'delay_seconds',
-    title: 'Minimum time since the last modification before processing the changes',
-    unit: 'seconds',
+    title: 'Minimum time since the last modification before processing the changes (seconds)',
     default_value: 30,
     type: 'number'
   }
