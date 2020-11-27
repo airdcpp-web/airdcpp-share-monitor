@@ -40,7 +40,7 @@ export const API = (socket: APISocket) => {
 
   const isPathShared = async (path: string) => {
     const result = await socket.post<{ is_shared: boolean }>(
-      'share/is_path_shared',
+      'share/check_path_shared',
       {
         path
       }
