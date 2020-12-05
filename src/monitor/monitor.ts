@@ -28,13 +28,22 @@ const watchOptions = {
 
 type WatchPaths = { [key in string]: ReturnType<typeof watch> }
 
+type CreateWatcherHandler = (path: string, reportErrors: boolean) => Promise<ReturnType<typeof watch> | null>;
+
+
 const initWatchers = async (
   { api, getExtSetting, logger }: Context, 
-  createWatcher: (path: string, reportErrors: boolean) => Promise<ReturnType<typeof watch> | null>
-) => {
+  createWatcher: CreateWatcherHandler
+): Promise<WatchPaths> => {
+  // Get roots
   const mode: MonitoringMode = getExtSetting('monitoring_mode');
   const validRoots = (await api.getShareRoots()).filter(root => useMonitoring(root, mode));
+  if (!validRoots.length) {
+    logger.verbose(`No roots were added for monitoring`);
+    return {};
+  }
 
+  // Add watchers
   api.postEvent(`Adding ${validRoots.length} paths for monitoring...`, SeverityEnum.INFO);
 
   const watchPaths: WatchPaths = {};
@@ -44,10 +53,10 @@ const initWatchers = async (
       watchPaths[root.path] = watcher;
     }
   }
-
-  logger.verbose(`Monitoring started`, Object.keys(watchPaths));
   
   api.postEvent(`${Object.keys(watchPaths).length} paths were added for monitoring`, SeverityEnum.INFO);
+
+  logger.verbose(`Monitoring started`, Object.keys(watchPaths));
   return watchPaths;
 };
 
@@ -111,7 +120,7 @@ export const Monitor = async (context: Context) => {
   };
 
   
-  const createWatcher = async (path: string, reportErrors: boolean): Promise<ReturnType<typeof watch> | null> => {
+  const createWatcher: CreateWatcherHandler = async (path, reportErrors) => {
     return new Promise((resolve, reject) => {
       try {
         logger.verbose(`Adding path ${path} for monitoring...`);

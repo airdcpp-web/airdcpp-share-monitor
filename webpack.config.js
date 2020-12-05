@@ -1,11 +1,11 @@
-var path = require('path');
-var webpack = require('webpack');
+const path = require('path');
+const webpack = require('webpack');
 
-var packageJson = require('./package.json');
+const packageJson = require('./package.json');
 
-var release = process.env.NODE_ENV === 'production';
+const release = process.env.NODE_ENV === 'production';
 
-var plugins = [
+const plugins = [
   // Optional binary requires that should be ignored
   new webpack.IgnorePlugin(/.*\/build\/.*\/(validation|bufferutil)/),
   new webpack.DefinePlugin({
@@ -48,7 +48,7 @@ module.exports = {
         exclude: /node_modules/
       }
     ]
-  },  
+  },
   resolve: {
     extensions: [ '.ts', '.js' ],
   },
