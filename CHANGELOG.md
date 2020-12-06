@@ -1,3 +1,8 @@
+### Version 1.0.0
+
+- Don't show a log message about added paths if there are no roots to watch
+- Update dependencies
+
 ### Version 0.0.7 (2020-11-27)
 
 - Correct an API path for checking deleted file/directory information

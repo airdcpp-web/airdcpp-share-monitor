@@ -6,22 +6,6 @@ import { Context } from '../context';
 
 export const MIN_PATH_MODIFICATION_AGE_MS = 1000;
 
-// const formatType = (isDirectory: boolean) => isDirectory ? 'directory' : 'file';
-
-/*enum ChangeType {
-  CHANGE = 'CHANGE',
-  REMOVE = 'REMOVE',
-};
-
-enum ActionType {
-  ACCEPT,
-  IGNORE,
-  ERROR,
-};
-
-const formatLabel = (changeType: ChangeType, actionType: ActionType) => {
-
-};*/
 
 export const getModifiedPathInfo = (path: string, { logger, now }: Context) => {
   try {
