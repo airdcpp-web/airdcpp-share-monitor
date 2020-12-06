@@ -1,4 +1,4 @@
-### Version 1.0.0
+### Version 1.0.0 (2020-12-06)
 
 - Don't show a log message about added paths if there are no roots to watch
 - Update dependencies
