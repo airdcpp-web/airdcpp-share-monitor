@@ -10,6 +10,23 @@ AirDC++ extension that will monitor the shared directories for changes and apply
 
 Enable extension debug mode from application settings and check the extension error logs (`Settings\extensions\airdcpp-search-sites\logs`) for additional information.
 
+### Common issues
+
+#### The extensions exits with "Error: watch /share/root/ ENOSPC" in the error log (Linux only)
+
+The maximum limit for directory watchers was reached. You may see the current limit on your system by executing the command `cat /proc/sys/fs/inotify/max_user_watches` in terminal.
+
+As Linux doesn't have support for watching directories for changes recursively, the extension needs to go through all roots and their subdirectories and add an individual watcher for each of them. If the total number of directories in your share is larger than the system limit for directory watchers, adding of watchers will fail.
+
+**Solution 1**
+
+If you don't need to watch all shared directories for changes, you may set some of the root as *Incoming* on the *Share* page and configure the extension to monitor incoming roots only.
+
+**Solution 2**
+
+You may increase the maximum watcher limit on your system ([instructions](https://confluence.jetbrains.com/display/IDEADEV/Inotify+Watches+Limit))
+
+
 ## Development
 
 >### Help wanted
