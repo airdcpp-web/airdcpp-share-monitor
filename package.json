@@ -48,24 +48,5 @@
   },
   "pre-commit": [
     "test"
-  ],
-  "jest": {
-    "transform": {
-      "^.+\\.ts$": "ts-jest"
-    },
-    "testEnvironment": "node",
-    "testRegex": ".*\\.test\\.ts$",
-    "moduleFileExtensions": [
-      "js",
-      "ts",
-      "json"
-    ],
-    "moduleNameMapper": {
-      "(src/.*)$": "<rootDir>/$1"
-    },
-    "watchPathIgnorePatterns": [
-      "/node_modules/",
-      "/dist/"
-    ]
-  }
+  ]
 }
