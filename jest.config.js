@@ -4,7 +4,6 @@ const config = {
     '^.+\\.ts$': 'ts-jest'
   },
   testEnvironment: 'node',
-  testRegex: '.*\\.test\\.ts$',
   moduleFileExtensions: [
     'js',
     'ts',
@@ -23,7 +22,7 @@ const config = {
     '/node_modules/',
     '/src/tests/'
   ],
-  collectCoverage: !!process.env.CI,
+  collectCoverage: true,
 };
 
 module.exports = config;
