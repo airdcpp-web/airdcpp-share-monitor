@@ -1,3 +1,7 @@
+### Version 1.0.1 (2020-12-18)
+
+- Avoid timeouts when disk response times are long ([#2](https://github.com/airdcpp-web/airdcpp-share-monitor/issues/2))
+
 ### Version 1.0.0 (2020-12-06)
 
 - Don't show a log message about added paths if there are no roots to watch
