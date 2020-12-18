@@ -1,27 +1,31 @@
 import { ensureEndSeparator } from '../utils';
 
-import { statSync } from 'fs';
+import { stat as statCallback } from 'fs';
+import { promisify } from 'util';
+
 import { Context } from '../context';
 
 
 export const MIN_PATH_MODIFICATION_AGE_MS = 1000;
 
 
-export const getModifiedPathInfo = (path: string, { logger, now }: Context) => {
+const statAsync = promisify(statCallback);
+
+export const getModifiedPathInfo = async (path: string, { logger, now }: Context) => {
   try {
-    const stat = statSync(path);
+    const statRes = await statAsync(path);
     const curTime = now();
 
     // Change event is fired even when the file/folder is being accessed
     // Check whether the content has actually been changed (ignore this change otherwise)
     // https://github.com/nodejs/node/issues/21643#issuecomment-403716321
-    const modifiedMsAgo = curTime - stat.mtimeMs;
+    const modifiedMsAgo = curTime - statRes.mtimeMs;
     if (modifiedMsAgo > MIN_PATH_MODIFICATION_AGE_MS) {
       logger.verbose(`CHANGE, SKIP: path ${path}, modified ${modifiedMsAgo} ago`);
       return null;
     }
 
-    const isDirectory = stat.isDirectory();
+    const isDirectory = statRes.isDirectory();
     logger.verbose(`CHANGE, ACCEPT: ${isDirectory ? 'directory' : 'file'} ${path}, modified ${modifiedMsAgo} ms ago`);
     return {
       isDirectory,

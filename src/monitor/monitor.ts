@@ -101,7 +101,7 @@ export const Monitor = async (context: Context) => {
     }
 
     if (eventName === 'update') {
-      const pathInfo = getModifiedPathInfo(pathRaw, context);
+      const pathInfo = await getModifiedPathInfo(pathRaw, context);
       if (!pathInfo) {
         return;
       }
