@@ -1,3 +1,7 @@
+### Version 1.0.2 (2020-12-xx)
+
+- Avoid timeouts when the system is unresponsive ([#2](https://github.com/airdcpp-web/airdcpp-share-monitor/issues/2))
+
 ### Version 1.0.1 (2020-12-18)
 
 - Avoid timeouts when disk response times are long ([#2](https://github.com/airdcpp-web/airdcpp-share-monitor/issues/2))
