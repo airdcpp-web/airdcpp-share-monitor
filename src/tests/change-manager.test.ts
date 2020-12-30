@@ -9,6 +9,7 @@ import { MonitorType } from 'src/monitor/monitor';
 
 import { ModificationCountMode } from 'src/types';
 import { ensureEndSeparator, getFilePath, getParentPath } from 'src/utils';
+import { APIType } from 'src/api';
 
 
 describe('Change manager', () => {
@@ -148,7 +149,7 @@ describe('Change manager', () => {
       maybeRemoveDirectory(newDirPath);
     });
 
-    const createMockRefreshMonitor = async () => {
+    const createMockRefreshMonitor = async (api?: Partial<APIType>) => {
       const mockApiRefresh = jest.fn();
       monitor = await getReadyMockMonitor({
         api: {
@@ -156,6 +157,7 @@ describe('Change manager', () => {
             mockApiRefresh(paths);
             return Promise.resolve();
           },
+          ...api,
         }
       });
 
@@ -202,7 +204,13 @@ describe('Change manager', () => {
     test('handle directory deletions', async () => {
       // Init
       mkdirSync(newDirPath);
-      const mockApiRefresh = await createMockRefreshMonitor();
+      const mockApiRefresh = await createMockRefreshMonitor({
+        isPathShared: (path) => {
+          // Accept only if the end separator exists (it will first be tested without it)
+          const ret = Promise.resolve(path === newDirPath);
+          return ret;
+        },
+      });
 
       // Fire change
       await triggerFsChange(newDirPath, monitor, rmdirSync);

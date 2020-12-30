@@ -2,7 +2,7 @@ import { AsyncReturnType, MonitoringMode, SeverityEnum, ShareRootEntryBase } fro
 import { ChangeManager } from './change-manager';
 
 import watch from 'node-watch';
-import { ensureEndSeparator, isParentOrExact, sleep } from '../utils';
+import { ensureEndSeparator, getFilePath, isParentOrExact, sleep } from '../utils';
 
 import { Context } from '../context';
 import { getDeletedFileInfo, getModifiedPathInfo } from './change-type-parser';
@@ -114,7 +114,7 @@ export const Monitor = async (context: Context) => {
         return;
       }
 
-      const path = pathInfo.isDirectory ? ensureEndSeparator(pathRaw) : pathRaw;
+      const path = pathInfo.isDirectory ? getFilePath(pathRaw) : pathRaw;
       changeManager.onPathRemoved(path, pathInfo.isDirectory, rootPath);
     }
   };

@@ -6,7 +6,7 @@ import { Context } from 'src/context';
 import { MOCK_API, MOCK_EXTENSION_SETTINGS, MOCK_LOGGER } from './mocks/mock-context-defaults';
 import waitForExpect from 'wait-for-expect';
 import { MOCK_SHARE_ROOTS } from './mocks/mock-data';
-import { sleep } from 'src/utils';
+import { getParentPath, sleep } from 'src/utils';
 import { Logger } from 'airdcpp-apisocket';
 
 
@@ -95,8 +95,8 @@ export const triggerFsChange: TriggerChange = async (path, monitor, func, ...arg
   await sleep(100);
 
   await waitForExpect(() => {
-    // Directory deletions will be fired without the end separator
-    const checkPath = (func as any) === rmdirSync ? path.substr(0, path.length - 1) : path;
+    // Directory deletions will be fired for the parent
+    const checkPath = (func as any) === rmdirSync ? getParentPath(path) : path;
     expect(monitor.hasPendingPathChange(checkPath)).toBe(true);
   }, DEFAULT_EXPECT_TIMEOUT);
 };
