@@ -99,6 +99,44 @@ describe('Change manager', () => {
       expect(monitor.getPendingChanges().length).toBe(1);
       expect(monitor.getPendingChanges()[0].path).toBe(ensureEndSeparator(MOCK_NORMAL_ROOT.path));
     });
+    
+    test('process any changes', async () => {
+      let curTime = 0;
+
+      // Init monitor
+      monitor = await getReadyMockMonitor({
+        settings: {
+          ...MOCK_EXTENSION_SETTINGS,
+          modification_count_mode: ModificationCountMode.ANY,
+        },
+        now: () => curTime
+      });
+
+      // Trigger first change
+      await triggerFsChange(filePathIncoming1, monitor, writeFileSync, 'empty');
+
+      curTime += 20000;
+
+      // Trigger change for the other root
+      await triggerFsChange(filePathNormal, monitor, writeFileSync, 'empty');
+
+      curTime += 20000;
+
+
+      {
+        // Should not get processed yet (not enough time has ellapsed from the second one)
+        const processed = await monitor.flush(false);
+        expect(processed).toBe(0);
+      }
+
+      curTime += 10000;
+
+      // The merged change should now be processed
+      const processed = await monitor.flush(false);
+      
+      expect(processed).toBe(2);
+      expect(monitor.getPendingChanges().length).toBe(0);
+    });
   });
   
   describe('Change events', () => {
@@ -170,6 +208,24 @@ describe('Change manager', () => {
       await triggerFsChange(newDirPath, monitor, rmdirSync);
 
       // Process
+      await monitor.flush(true);
+      expect(mockApiRefresh).toHaveBeenCalledWith([ getParentPath(newDirPath) ]);
+    });
+    
+    test('handle updating the change info parent path', async () => {
+      // Init
+      const newSubdirPath = path.join(newDirPath, 'subdir', path.sep);
+      
+      mkdirSync(newDirPath);
+      mkdirSync(newSubdirPath);
+
+      const mockApiRefresh = await createMockRefreshMonitor();
+
+      // Fire change
+      await triggerFsChange(newSubdirPath, monitor, rmdirSync);
+      await triggerFsChange(newDirPath, monitor, rmdirSync);
+
+      // Process (refresh should be called only for the parent)
       await monitor.flush(true);
       expect(mockApiRefresh).toHaveBeenCalledWith([ getParentPath(newDirPath) ]);
     });
