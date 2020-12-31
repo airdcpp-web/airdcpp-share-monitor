@@ -44,7 +44,7 @@
   "main": "dist/main.js",
   "airdcpp": {
     "apiVersion": 1,
-    "minApiFeatureLevel": 0
+    "minApiFeatureLevel": 6
   },
   "pre-commit": [
     "test"
