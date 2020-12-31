@@ -227,7 +227,13 @@ describe('Change manager', () => {
       mkdirSync(newDirPath);
       mkdirSync(newSubdirPath);
 
-      const mockApiRefresh = await createMockRefreshMonitor();
+      const mockApiRefresh = await createMockRefreshMonitor({
+        isPathShared: (path) => {
+          // Accept only if the end separator exists (it will first be tested without it)
+          const ret = Promise.resolve(path === newDirPath || path === newSubdirPath);
+          return ret;
+        },
+      });
 
       // Fire change
       await triggerFsChange(newSubdirPath, monitor, rmdirSync);

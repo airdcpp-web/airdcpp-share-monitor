@@ -49,6 +49,24 @@ export const API = (socket: APISocket) => {
     return result.is_shared;
   };
 
+  interface PathQueuedResponse {
+    bundle?: {
+      id: string;
+      completed: boolean;
+    }
+  }
+
+  const isPathQueued = async (path: string) => {
+    const result = await socket.post<PathQueuedResponse>(
+      'queue/check_path_queued',
+      {
+        path
+      }
+    );
+
+    return result;
+  };
+
   const postEvent = async (text: string, severity: SeverityEnum) => {
     return socket.post(
       'events',
@@ -64,6 +82,7 @@ export const API = (socket: APISocket) => {
     getShareRoots,
     validateSharePath,
     isPathShared,
+    isPathQueued,
     refreshSharePaths,
     postEvent,
   };

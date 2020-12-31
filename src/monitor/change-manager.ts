@@ -1,11 +1,10 @@
 import { Context } from '../context';
 
-import { getFilePath } from '../utils';
-
 import * as PathModifyInfo from './path-modify-info';
 
 
 const CHANGE_PROCESS_INTERVAL_SECONDS = 30;
+
 
 export const ChangeManager = (context: Context) => {
   const { api, logger, now } = context;
@@ -23,36 +22,40 @@ export const ChangeManager = (context: Context) => {
   };
 
   // Queue a new change for processing
-  const queueChange = (path: string, isDirectory: boolean, shareRootPath: string) => {
+  const queueChange = (path: string, isDirectory: boolean, shareRootPath: string, changeType: PathModifyInfo.ChangeType) => {
     totalChanges++;
 
-    const directoryPath = isDirectory ? path : getFilePath(path);
+    const directoryPath = PathModifyInfo.parseModificationInfoDirectoryPath(path, isDirectory, changeType);
 
     const existingModifyInfo = findModifyInfo(path);
     if (existingModifyInfo) {
-      PathModifyInfo.onModified(existingModifyInfo, directoryPath, path, context);
+      PathModifyInfo.onModified(existingModifyInfo, directoryPath, path, changeType, context);
+      // logger.verbose(`Path ${path}: merged into an existing modification info ${existingModifyInfo.path} (${JSON.stringify(existingModifyInfo.changedPaths, null, 2)})`);
     } else {
       const newModifyInfo: PathModifyInfo.ModifyInfo = {
         path: directoryPath,
         shareRootPath,
         lastModification: now(),
-        changedPaths: new Set([ path ]),
+        changedPaths: {
+          [path]: changeType,
+        },
+        timeAdded: now(),
+        validated: false,
       };
 
       modifyInfos.push(newModifyInfo);
+      // logger.verbose(`Path ${path}: created new modification info ${newModifyInfo.path} (${JSON.stringify(newModifyInfo.changedPaths, null, 2)})`);
     };
   }
 
   // New file/directory was created
   const onPathChanged = (path: string, isDirectory: boolean, shareRootPath: string) => {
-    queueChange(path, isDirectory, shareRootPath);
+    queueChange(path, isDirectory, shareRootPath, PathModifyInfo.ChangeType.MODIFIED);
   };
 
   // File/directory was deleted
   const onPathRemoved = async (path: string, isDirectory: boolean, shareRootPath: string) => {
-
-
-    queueChange(path, isDirectory, shareRootPath);
+    queueChange(path, isDirectory, shareRootPath, PathModifyInfo.ChangeType.DELETED);
   };
 
   // Process queued modify infos (if they are ready for it)
@@ -119,7 +122,7 @@ export const ChangeManager = (context: Context) => {
 
   // Check whether changes have been received for a path
   const hasPendingPathChange = (path: string) => {
-    const found = modifyInfos.find(mi => mi.path === path || mi.changedPaths.has(path));
+    const found = modifyInfos.find(mi => mi.path === path || mi.changedPaths[path]);
     return !!found;
   };
 

@@ -2,31 +2,56 @@ import { ErrorResponse } from 'airdcpp-apisocket';
 import { Context } from '../context';
 import { ModificationCountMode, SeverityEnum } from '../types';
 
-import { isSub } from '../utils';
+import { getFilePath, getParentPath, isSub } from '../utils';
 
 
+export enum ChangeType {
+  DELETED = 'deleted',
+  MODIFIED = 'modified',
+};
 export interface ModifyInfo {
   path: string;
   shareRootPath: string;
   lastModification: number;
-  changedPaths: Set<string>;
+  changedPaths: Record<string, ChangeType>;
+  timeAdded: number;
+  validated: boolean;
 }
 
+
+// Parse directory path for ModifyInfo
+export const parseModificationInfoDirectoryPath = (path: string, isDirectory: boolean, changeType: ChangeType) => {
+  if (!isDirectory) {
+    // File
+    return getFilePath(path);
+  }
+
+  // Directory
+  return changeType === ChangeType.DELETED ? getParentPath(path) : path;
+};
+
 // New change was made to an existing modify info directory
-export const onModified = (mi: ModifyInfo, directoryPath: string, path: string, { now }: Context) => {
+export const onModified = (mi: ModifyInfo, directoryPath: string, path: string, changeType: ChangeType, { now }: Context) => {
   if (isSub(mi.path, directoryPath)) {
     mi.path = directoryPath;
   }
 
   mi.lastModification = now();
-  mi.changedPaths.add(path);
+
+  // Add this path
+  mi.changedPaths = {
+    ...mi.changedPaths,
+    [path]: changeType,
+  };
+
+  return true;
 };
 
 // Check if enough time has ellapsed since the last modification
-const checkDelay = (delaySeconds: number, now: number) => {
+const checkModificationDelay = (delaySeconds: number, now: number) => {
   return (mi: ModifyInfo) => {
     const allowProcessTime = mi.lastModification + (delaySeconds * 1000);
-    const ret = now >= allowProcessTime
+    const ret = now >= allowProcessTime;
     return ret;
   };
 };
@@ -40,17 +65,17 @@ export const allowProcess = (mi: ModifyInfo, allModifyInfos: ModifyInfo[], { now
   if (countMode === ModificationCountMode.ROOT) {
     const ok = allModifyInfos
       .filter(other => other.shareRootPath === mi.shareRootPath)
-      .every(checkDelay(delaySeconds, curTime));
+      .every(checkModificationDelay(delaySeconds, curTime));
 
     if (!ok) {
       return false;
     }
   } else if (countMode === ModificationCountMode.DIRECTORY) {
-    if (!checkDelay(delaySeconds, curTime)(mi)) {
+    if (!checkModificationDelay(delaySeconds, curTime)(mi)) {
       return false;
     }
   } else if (countMode === ModificationCountMode.ANY) {
-    const ok = allModifyInfos.every(checkDelay(delaySeconds, curTime));
+    const ok = allModifyInfos.every(checkModificationDelay(delaySeconds, curTime));
     if (!ok) {
       return false;
     }

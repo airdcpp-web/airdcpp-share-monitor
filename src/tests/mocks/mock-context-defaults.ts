@@ -4,10 +4,14 @@ import { MOCK_SHARE_ROOTS } from './mock-data';
 
 export const MOCK_LOGGER = {
   verbose: (...args: any) => {
-    // console.log(...args);
+    if (process.env.DEBUG) {
+      console.log(...args);
+    }
   },
   info: (...args: any) => {
-    // console.info(...args);
+    if (process.env.DEBUG) {
+      console.info(...args);
+    }
   },
   warn: (...args: any) => {
     console.warn(...args);
@@ -42,6 +46,9 @@ export const MOCK_API: APIType = {
   },
   isPathShared: (path) => {
     return Promise.resolve(true);
+  },
+  isPathQueued: (path) => {
+    return Promise.resolve(false);
   },
   postEvent: (text, severity) => {
     return Promise.resolve();
