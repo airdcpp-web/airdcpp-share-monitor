@@ -34,7 +34,7 @@ export const ensureEndSeparator = (fullPath: string) => {
 
 /* returns true if aDir is a subdir of aParent */
 export const isSub = (testSub: string, parent: string) => {
-	if (testSub.length <= parent.length) {
+  if (testSub.length <= parent.length) {
     return false;
   }
 
@@ -43,7 +43,7 @@ export const isSub = (testSub: string, parent: string) => {
 
 /* returns true if aSub is a subdir of aDir OR both are the same dir */
 export const isParentOrExact = (testParent: string, sub: string) => {
-	if (sub.length < testParent.length) {
+  if (sub.length < testParent.length) {
     return false;
   }
 

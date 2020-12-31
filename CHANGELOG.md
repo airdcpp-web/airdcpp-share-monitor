@@ -1,6 +1,8 @@
 ### Version 1.0.2 (2020-12-xx)
 
 - Avoid timeouts when the system is unresponsive ([#2](https://github.com/airdcpp-web/airdcpp-share-monitor/issues/2))
+- Trigger refresh for the parent directory when deleting directories
+- Ignore changes for queued files/directories (avoids cases where bundle directories could get refreshed by the extension after they have finished downloading)
 
 ### Version 1.0.1 (2020-12-18)
 

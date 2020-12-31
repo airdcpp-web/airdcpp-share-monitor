@@ -11,5 +11,5 @@ import Entry from './main';
 
 // See https://github.com/airdcpp-web/airdcpp-extension-js for usage information
 ManagedExtension(Entry , {
-	// Possible custom options for airdcpp-apisocket can be listed here
+  // Possible custom options for airdcpp-apisocket can be listed here
 });
