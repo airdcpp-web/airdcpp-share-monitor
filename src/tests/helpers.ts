@@ -11,6 +11,7 @@ import { Logger } from 'airdcpp-apisocket';
 
 
 export const DEFAULT_EXPECT_TIMEOUT = 1500;
+export const TEST_API_FEATURE_LEVEL = 7;
 
 const getMockExtSettingGetter = (settings: ExtensionSettings = MOCK_EXTENSION_SETTINGS) => {
   return (key: string) => {
@@ -38,7 +39,7 @@ export const getMockContext = (options: MockContextOptions): Context => ({
   now: options.now || (() => Date.now()),
   sessionInfo: {
     system_info: {
-      api_feature_level: 6,
+      api_feature_level: TEST_API_FEATURE_LEVEL,
     }
   }
 });

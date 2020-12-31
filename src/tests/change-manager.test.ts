@@ -1,7 +1,7 @@
 import path from 'path';
 
 import { writeFileSync, unlinkSync, mkdirSync, rmdirSync } from 'fs';
-import { getReadyMockMonitor, maybeRemoveFile, maybeRemoveDirectory, triggerFsChange } from './helpers';
+import { getReadyMockMonitor, maybeRemoveFile, maybeRemoveDirectory, triggerFsChange, DEFAULT_EXPECT_TIMEOUT } from './helpers';
 import { MOCK_INCOMING_ROOT, MOCK_NORMAL_ROOT } from './mocks/mock-data';
 import { MOCK_EXTENSION_SETTINGS } from './mocks/mock-context-defaults';
 
@@ -10,6 +10,7 @@ import { MonitorType } from 'src/monitor/monitor';
 import { ModificationCountMode } from 'src/types';
 import { ensureEndSeparator, getFilePath, getParentPath } from 'src/utils';
 import { APIType } from 'src/api';
+import waitForExpect from 'wait-for-expect';
 
 
 describe('Change manager', () => {
@@ -242,6 +243,32 @@ describe('Change manager', () => {
       // Process (refresh should be called only for the parent)
       await monitor.flush(true);
       expect(mockApiRefresh).toHaveBeenCalledWith([ getParentPath(newDirPath) ]);
+    });
+
+    test('ignore changes for queued bundles', async () => {
+      // Init
+      const queueApiMock = jest.fn();
+      await createMockRefreshMonitor({
+        isPathQueued: (path: string) => {
+          queueApiMock(path);
+          return Promise.resolve({
+            bundle: {
+              id: 123,
+              completed: false,
+            }
+          });
+        },
+      });
+
+      // Fire change
+      writeFileSync(newFilePath, 'empty');
+
+      // Checks
+      await waitForExpect(() => {
+        expect(queueApiMock).toHaveBeenCalledWith(newFilePath);
+      }, DEFAULT_EXPECT_TIMEOUT);
+
+      expect(monitor.getStats().totalChanges).toBe(0);
     });
   });
 });

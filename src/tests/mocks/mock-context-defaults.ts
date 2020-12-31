@@ -48,7 +48,9 @@ export const MOCK_API: APIType = {
     return Promise.resolve(true);
   },
   isPathQueued: (path) => {
-    return Promise.resolve(false);
+    return Promise.resolve({
+      bundle: undefined,
+    });
   },
   postEvent: (text, severity) => {
     return Promise.resolve();

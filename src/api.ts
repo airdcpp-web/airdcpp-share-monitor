@@ -51,7 +51,7 @@ export const API = (socket: APISocket) => {
 
   interface PathQueuedResponse {
     bundle?: {
-      id: string;
+      id: number;
       completed: boolean;
     }
   }
