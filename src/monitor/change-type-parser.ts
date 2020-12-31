@@ -2,6 +2,7 @@ import { ensureEndSeparator } from '../utils';
 
 import { stat as statCallback } from 'fs';
 import { promisify } from 'util';
+import { extname } from 'path';
 
 import { Context } from '../context';
 
@@ -13,6 +14,11 @@ const statAsync = promisify(statCallback);
 
 
 export const getModifiedPathInfo = async (pathRaw: string, { logger, now, api, sessionInfo }: Context) => {
+  if (extname(pathRaw) === '.dctmp') {
+    logger.verbose(`CHANGE, SKIP: path ${pathRaw}, temp download file`);
+    return null;
+  }
+
   try {
     const statRes = await statAsync(pathRaw);
     const curTime = now();
