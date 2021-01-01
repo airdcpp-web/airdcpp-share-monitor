@@ -1,3 +1,7 @@
+### Version 1.1.1 (2021-01-01)
+
+- Avoid filling the log file with excessive messages when running the extension in debug mode
+
 ### Version 1.1.0 (2021-01-01)
 
 - Avoid timeouts when the system is unresponsive ([#2](https://github.com/airdcpp-web/airdcpp-share-monitor/issues/2))

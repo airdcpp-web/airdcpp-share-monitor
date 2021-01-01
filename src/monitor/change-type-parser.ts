@@ -15,7 +15,6 @@ const statAsync = promisify(statCallback);
 
 export const getModifiedPathInfo = async (pathRaw: string, { logger, now, api, sessionInfo }: Context) => {
   if (extname(pathRaw) === '.dctmp') {
-    logger.verbose(`CHANGE, SKIP: path ${pathRaw}, temp download file`);
     return null;
   }
 
