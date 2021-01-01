@@ -1,4 +1,4 @@
-### Version 1.0.2 (2020-12-xx)
+### Version 1.1.0 (2021-01-01)
 
 - Avoid timeouts when the system is unresponsive ([#2](https://github.com/airdcpp-web/airdcpp-share-monitor/issues/2))
 - Trigger refresh for the parent directory when deleting directories
