@@ -1,6 +1,6 @@
 {
   "name": "airdcpp-share-monitor",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Real time share monitoring",
   "license": "MIT",
   "author": {
@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "airdcpp-apisocket": "^2.4.1",
-    "airdcpp-extension": "^1.4.2",
+    "airdcpp-extension": "^1.5.0",
     "airdcpp-extension-settings": "^1.2.1",
     "cross-env": "^7.0.3",
     "jest": "^26.6.3",

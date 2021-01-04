@@ -1,3 +1,8 @@
+### Version 1.1.2 (2021-01-04)
+
+- Avoid timeouts when the system is unresponsive ([#2](https://github.com/airdcpp-web/airdcpp-share-monitor/issues/2))
+- Fix compatibility with older node versions (< 12)
+
 ### Version 1.1.1 (2021-01-01)
 
 - Avoid filling the log file with excessive messages when running the extension in debug mode
