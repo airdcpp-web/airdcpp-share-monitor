@@ -1,3 +1,7 @@
+### Version 1.1.3 (2021-01-21)
+
+- Fix possible crashes after startup when change events were received before the extension had been fully initialized
+
 ### Version 1.1.2 (2021-01-04)
 
 - Avoid timeouts when the system is unresponsive ([#2](https://github.com/airdcpp-web/airdcpp-share-monitor/issues/2))
