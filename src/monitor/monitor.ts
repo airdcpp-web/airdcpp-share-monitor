@@ -31,39 +31,10 @@ type WatchPaths = { [key in string]: ReturnType<typeof watch> }
 type CreateWatcherHandler = (path: string, reportErrors: boolean) => Promise<ReturnType<typeof watch> | null>;
 
 
-const initWatchers = async (
-  { api, getExtSetting, logger }: Context, 
-  createWatcher: CreateWatcherHandler
-): Promise<WatchPaths> => {
-  // Get roots
-  const mode: MonitoringMode = getExtSetting('monitoring_mode');
-  const validRoots = (await api.getShareRoots()).filter(root => useMonitoring(root, mode));
-  if (!validRoots.length) {
-    logger.verbose(`No roots were added for monitoring`);
-    return {};
-  }
-
-  // Add watchers
-  api.postEvent(`Adding ${validRoots.length} paths for monitoring...`, SeverityEnum.INFO);
-
-  const watchPaths: WatchPaths = {};
-  for (const root of validRoots) {
-    const watcher = await createWatcher(root.path, true);
-    if (watcher) {
-      watchPaths[root.path] = watcher;
-    }
-  }
-  
-  api.postEvent(`${Object.keys(watchPaths).length} paths were added for monitoring`, SeverityEnum.INFO);
-
-  logger.verbose(`Monitoring started`, Object.keys(watchPaths));
-  return watchPaths;
-};
-
 export const Monitor = async (context: Context) => {
   const { logger, api, getExtSetting } = context;
   const changeManager = ChangeManager(context);
-  let watchPaths: WatchPaths;
+  let watchPaths: WatchPaths = {};
   let failedRoots: string[] = [];
   let failedRootCheckInterval: any;
 
@@ -73,7 +44,7 @@ export const Monitor = async (context: Context) => {
   };
 
   // Watcher error handler
-  const onError = (path: string, error: Error) => {
+  const onWatcherError = (path: string, error: Error) => {
     logger.error(`ERROR: path ${path} (${error.message})`, (error as any).code, error);
     api.postEvent(`Error occurred for path ${path}: ${error.message} (removing from monitoring)`, SeverityEnum.ERROR);
 
@@ -85,7 +56,7 @@ export const Monitor = async (context: Context) => {
   };
 
   // Watcher close handler
-  const onClose = (path: string) => {
+  const onWatcherClose = (path: string) => {
     logger.verbose(`Monitoring stopped for path ${path}`);
 
     const { [path]: deleted, ...newWatchPaths } = watchPaths;
@@ -93,7 +64,7 @@ export const Monitor = async (context: Context) => {
   };
 
   // Watcher change handler
-  const onChange = async (eventName: 'update' | 'remove', pathRaw: string) => {
+  const onWatcherChange = async (eventName: 'update' | 'remove', pathRaw: string) => {
     const rootPath = parseRootPath(pathRaw);
     if (!rootPath) {
       logger.error(`${eventName.toLocaleUpperCase()}, ERROR: no root found for path ${pathRaw}`, Object.keys(watchPaths));
@@ -117,7 +88,7 @@ export const Monitor = async (context: Context) => {
     }
   };
 
-  
+  // Create watcher for a share root path
   const createWatcher: CreateWatcherHandler = async (path, reportErrors) => {
     return new Promise((resolve, reject) => {
       try {
@@ -129,9 +100,9 @@ export const Monitor = async (context: Context) => {
             logger.verbose(`Path ${path} was added for monitoring`);
             resolve(watcher);
           })
-          .on('change', onChange)
-          .on('error', onError.bind(this, path))
-          .on('close', onClose.bind(this, path));
+          .on('change', onWatcherChange)
+          .on('error', onWatcherError.bind(this, path))
+          .on('close', onWatcherClose.bind(this, path));
       } catch (e) {
         if (reportErrors) {
           api.postEvent(`Failed to add path ${path} for monitoring: ${e.message}`, SeverityEnum.ERROR);
@@ -249,14 +220,44 @@ export const Monitor = async (context: Context) => {
     return failedRoots;
   };
 
+
+  // Add initial watchers for the share roots
+  const initWatchers = async (
+    { api, getExtSetting, logger }: Context
+  ) => {
+    // Get roots
+    const mode: MonitoringMode = getExtSetting('monitoring_mode');
+    const validRoots = (await api.getShareRoots()).filter(root => useMonitoring(root, mode));
+    if (!validRoots.length) {
+      logger.verbose(`No roots were added for monitoring`);
+    }
+  
+    // Add watchers
+    api.postEvent(`Adding ${validRoots.length} paths for monitoring...`, SeverityEnum.INFO);
+  
+    for (const root of validRoots) {
+      const watcher = await createWatcher(root.path, true);
+      if (watcher) {
+        // Add in watch paths immediately so that the change events can be processed
+        watchPaths = {
+          ...watchPaths,
+          [root.path]: watcher,
+        };
+      }
+    }
+    
+    api.postEvent(`${Object.keys(watchPaths).length} paths were added for monitoring`, SeverityEnum.INFO);
+    logger.verbose(`Monitoring started`, Object.keys(watchPaths));
+  };
+
   // Init
-  watchPaths = await initWatchers(context, createWatcher);
+  await initWatchers(context);
   return {
     onRootAdded,
     onRootRemoved,
     onRootUpdated,
 
-    onError,
+    onError: onWatcherError,
     checkFailedRoots,
     getFailedRoots,
     getWatchPaths,
