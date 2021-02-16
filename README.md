@@ -26,6 +26,15 @@ If you don't need to watch all shared directories for changes, you may set some 
 
 You may increase the maximum watcher limit on your system ([instructions](https://confluence.jetbrains.com/display/IDEADEV/Inotify+Watches+Limit))
 
+#### Extension airdcpp-share-monitor timed out and was restarted
+
+Common reasons that may cause a timeout:
+
+- The extension became unresponsive because of an unusually high system load
+- System was hibernated
+
+If such timeouts happen often when the system is under heavy load, you can increase the ping timeout period from the Web UI (*Settings* -> *System* -> *Advanced server settings* -> *Socket ping timeout*).
+
 
 ## Development
 
