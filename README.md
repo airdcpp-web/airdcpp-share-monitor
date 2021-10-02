@@ -12,11 +12,11 @@ Enable extension debug mode from application settings and check the extension er
 
 ### Common issues
 
-#### The extensions exits with "EISDIR: illegal operation on a directory" in the error log
+#### The extension exits with "EISDIR: illegal operation on a directory" in the error log
 
 This means that your system or the specific storage solution doesn't support file watching. File watching is typically supported on Windows, Linux and macOS, but it may not work with all network storage solutions or when using virtualization.
 
-#### The extensions exits with "Error: watch /share/root/ ENOSPC" in the error log (Linux only)
+#### The extension exits with "Error: watch /share/root/ ENOSPC" in the error log (Linux only)
 
 The maximum limit for directory watchers was reached. You may see the current limit on your system by executing the command `cat /proc/sys/fs/inotify/max_user_watches` in terminal.
 
