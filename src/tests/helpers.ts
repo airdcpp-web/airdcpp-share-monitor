@@ -14,7 +14,7 @@ export const DEFAULT_EXPECT_TIMEOUT = 1500;
 export const TEST_API_FEATURE_LEVEL = 7;
 
 const getMockExtSettingGetter = (settings: ExtensionSettings = MOCK_EXTENSION_SETTINGS) => {
-  return (key: string) => {
+  return (key: keyof ExtensionSettings) => {
     return settings[key];
   };
 };
