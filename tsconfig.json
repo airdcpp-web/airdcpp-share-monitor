@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
     "outDir": "build/dist",
-    "module": "esnext",
-    "target": "ES2019",
-    "lib": ["ES2019", "dom", "esnext.asynciterable"],
+    "module": "ESNext",
+    "target": "es2020",
+    "lib": ["es2020", "dom"],
     "sourceMap": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "rootDir": "src",
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,

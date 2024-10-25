@@ -45,10 +45,13 @@ export const Monitor = async (context: Context) => {
 
   // Watcher error handler
   const onWatcherError = (path: string, error: Error) => {
-    logger.error(`ERROR: path ${path} (${error.message})`, (error as any).code, error);
+    logger.error(`ERROR: path ${path} (${error.message})`, error);
     api.postEvent(`Error occurred for path ${path}: ${error.message} (removing from monitoring)`, SeverityEnum.ERROR);
 
-    watchPaths[path].close();
+    if (watchPaths[path]) { // It may fail on init
+      watchPaths[path].close();
+    }
+  
     failedRoots = [
       ...failedRoots,
       path,
