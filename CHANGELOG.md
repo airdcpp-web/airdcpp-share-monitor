@@ -1,3 +1,8 @@
+### Version 1.2.0 (2024-10-26)
+
+- Fix file copy events not possibly triggering a refresh
+- Update all dependencies, drop support for older Node.js versions
+
 ### Version 1.1.3 (2021-01-21)
 
 - Fix possible crashes after startup when change events were received before the extension had been fully initialized
