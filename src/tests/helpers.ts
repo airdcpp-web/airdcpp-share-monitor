@@ -99,7 +99,7 @@ export const triggerFsChange: TriggerChange = async (path, monitor, func, ...arg
     // Directory deletions will be fired for the parent
     const hasPathChange = monitor.hasPendingPathChange(path);
     if (!hasPathChange) {
-      expect(path).toBe(true);
+      throw new Error('No pending changes for path ' + path);
     }
   }, DEFAULT_EXPECT_TIMEOUT);
 };

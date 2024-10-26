@@ -80,6 +80,8 @@ describe('Change manager', () => {
 
       // Trigger second change (it will merged with the same path)
       await triggerFsChange(filePathIncoming2, monitor, writeFileSync, 'empty');
+      
+      expect(monitor.getPendingChanges().length).toBe(1);
 
       curTime += 20000;
 

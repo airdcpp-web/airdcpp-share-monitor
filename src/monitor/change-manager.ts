@@ -103,6 +103,7 @@ export const ChangeManager = (context: Context) => {
 
   // Stop the scheduled processing interval
   const stop = () => {
+    modifyInfos = []
     if (interval) {
       clearInterval(interval);
       interval = undefined;
