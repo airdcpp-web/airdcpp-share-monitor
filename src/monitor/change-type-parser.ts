@@ -1,8 +1,6 @@
 import { ensureEndSeparator } from '../utils';
 
-import { stat as statCallback } from 'fs';
-import { promisify } from 'util';
-import { extname } from 'path';
+import { Stats } from 'fs';
 
 import { Context } from '../context';
 
@@ -10,46 +8,44 @@ import { Context } from '../context';
 export const MIN_PATH_MODIFICATION_AGE_MS = 1000;
 
 
-const statAsync = promisify(statCallback);
+// Find the latest modification time (mtime may not be updated when copying)
+const parseModifiedMsAgo = (stats: Stats, now: number) => {
+  const dates = [stats.mtime.getTime(), stats.ctime.getTime()]
 
+  // Birth time may not be available on all systems
+  if (stats.birthtime.getTime() > 0) {
+    dates.push(stats.birthtime.getTime());
+  }
 
-export const getModifiedPathInfo = async (pathRaw: string, { logger, now, api, sessionInfo }: Context) => {
-  if (extname(pathRaw) === '.dctmp') {
+  const modificationTime = Math.max(...dates);
+  return now - modificationTime;
+}
+
+export const getModifiedPathInfo = async (stats: Stats, pathRaw: string, { logger, now, api, sessionInfo }: Context) => {
+  // Change event is fired even when the file/folder is being accessed
+  // Check whether the content has actually been changed (ignore this change otherwise)
+  // https://github.com/nodejs/node/issues/21643#issuecomment-403716321
+  const modifiedMsAgo = parseModifiedMsAgo(stats, now());
+  if (modifiedMsAgo > MIN_PATH_MODIFICATION_AGE_MS) {
+    logger.verbose(`CHANGE, SKIP: path ${pathRaw}, modified ${modifiedMsAgo} ms ago`);
     return null;
   }
 
-  try {
-    const statRes = await statAsync(pathRaw);
-    const curTime = now();
-
-    // Change event is fired even when the file/folder is being accessed
-    // Check whether the content has actually been changed (ignore this change otherwise)
-    // https://github.com/nodejs/node/issues/21643#issuecomment-403716321
-    const modifiedMsAgo = curTime - statRes.mtimeMs;
-    if (modifiedMsAgo > MIN_PATH_MODIFICATION_AGE_MS) {
-      logger.verbose(`CHANGE, SKIP: path ${pathRaw}, modified ${modifiedMsAgo} ms ago`);
+  const isDirectory = stats.isDirectory();
+  const path = isDirectory ? ensureEndSeparator(pathRaw) : pathRaw;
+  if (sessionInfo.system_info.api_feature_level >= 7) {
+    const { bundle } = await api.isPathQueued(path);
+    if (bundle && !bundle.completed) {
+      logger.verbose(`CHANGE, SKIP: path ${pathRaw}, exists in queue`);
       return null;
     }
-
-    const isDirectory = statRes.isDirectory();
-    const path = isDirectory ? ensureEndSeparator(pathRaw) : pathRaw;
-    if (sessionInfo.system_info.api_feature_level >= 7) {
-      const { bundle } = await api.isPathQueued(path);
-      if (bundle && !bundle.completed) {
-        logger.verbose(`CHANGE, SKIP: path ${pathRaw}, exists in queue`);
-        return null;
-      }
-    }
-
-    logger.verbose(`CHANGE, ACCEPT: ${isDirectory ? 'directory' : 'file'} ${path}, modified ${modifiedMsAgo} ms ago`);
-    return {
-      path,
-      isDirectory,
-    };
-  } catch (e) {
-    logger.verbose(`CHANGE, ERROR: failed to parse path information ${pathRaw}: ${e.message}`);
-    return null;
   }
+
+  logger.verbose(`CHANGE, ACCEPT: ${isDirectory ? 'directory' : 'file'} ${path}, modified ${modifiedMsAgo} ms ago`);
+  return {
+    path,
+    isDirectory,
+  };
 };
 
 export const getDeletedFileInfo = async (pathRaw: string, { logger, api, sessionInfo }: Context) => {
