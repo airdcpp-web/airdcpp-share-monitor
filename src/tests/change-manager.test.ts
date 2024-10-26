@@ -8,7 +8,7 @@ import { MOCK_EXTENSION_SETTINGS } from './mocks/mock-context-defaults';
 import { MonitorType } from 'src/monitor/monitor';
 
 import { ModificationCountMode } from 'src/types';
-import { ensureEndSeparator, getFilePath, getParentPath } from 'src/utils';
+import { ensureEndSeparator, getFilePath, getParentPath, sleep } from 'src/utils';
 import { APIType } from 'src/api';
 import waitForExpect from 'wait-for-expect';
 
@@ -28,6 +28,10 @@ describe('Change manager', () => {
     maybeRemoveFile(filePathIncoming1);
     maybeRemoveFile(filePathIncoming2);
     maybeRemoveFile(filePathNormal);
+
+    // Deletion events may arrive a bit late (at least on macOS), 
+    // Wait for them before initializing a new monitor
+    await sleep(100)
   });
 
   describe('Change count modes', () => {
