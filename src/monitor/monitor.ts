@@ -1,11 +1,14 @@
 import { AsyncReturnType, MonitoringMode, SeverityEnum, ShareRootEntryBase } from '../types';
 import { ChangeManager } from './change-manager';
 
-import watch from 'node-watch';
-import { isParentOrExact, sleep } from '../utils';
+import { Stats } from 'fs';
+import { stat } from 'fs/promises';
+import { sleep } from '../utils';
+import { extname } from 'path';
 
 import { Context } from '../context';
 import { getDeletedFileInfo, getModifiedPathInfo } from './change-type-parser';
+import { normalizeChangePath, USE_THIRD_PARTY_WATCH, watch } from './watch';
 
 
 // Check whether monitoring should be enabled for the root
@@ -30,6 +33,13 @@ type WatchPaths = { [key in string]: ReturnType<typeof watch> }
 
 type CreateWatcherHandler = (path: string, reportErrors: boolean) => Promise<ReturnType<typeof watch> | null>;
 
+const alwaysIgnoreFile = (pathRaw: string) => {
+  if (extname(pathRaw) === '.dctmp') {
+    return true;
+  }
+
+  return false;
+}
 
 export const Monitor = async (context: Context) => {
   const { logger, api, getExtSetting } = context;
@@ -37,11 +47,6 @@ export const Monitor = async (context: Context) => {
   let watchPaths: WatchPaths = {};
   let failedRoots: string[] = [];
   let failedRootCheckInterval: any;
-
-  // Find root path for a changed file/directory path
-  const parseRootPath = (path: string) => {
-    return Object.keys(watchPaths).find(rootPath => isParentOrExact(rootPath, path));
-  };
 
   // Watcher error handler
   const onWatcherError = (path: string, error: Error) => {
@@ -67,28 +72,45 @@ export const Monitor = async (context: Context) => {
   };
 
   // Watcher change handler
-  const onWatcherChange = async (eventName: 'update' | 'remove', pathRaw: string) => {
-    const rootPath = parseRootPath(pathRaw);
-    if (!rootPath) {
-      logger.error(`${eventName.toLocaleUpperCase()}, ERROR: no root found for path ${pathRaw}`, Object.keys(watchPaths));
+  const onWatcherChange = async (rootPath: string, eventName: 'update' | 'remove', pathRaw: string | null) => {
+    const path = normalizeChangePath(rootPath, pathRaw);
+    if (alwaysIgnoreFile(path)) {
       return;
     }
 
-    if (eventName === 'update') {
-      const pathInfo = await getModifiedPathInfo(pathRaw, context);
-      if (!pathInfo) {
-        return;
+    try {
+      const stats = await stat(path);
+      await onChanged(stats, rootPath, path);
+    } catch (e: unknown) {
+      // Report unknown errors
+      if (e instanceof Error) {
+        const error: NodeJS.ErrnoException = e;
+        if (error.code !== 'ENOENT') {
+          logger.error(`${eventName.toLocaleUpperCase()}, ERROR: stats failed for ${path} (${error.code}, ${error.message})`);
+        }
       }
 
-      changeManager.onPathChanged(pathInfo.path, pathInfo.isDirectory, rootPath);
-    } else if (eventName === 'remove') {
-      const pathInfo = await getDeletedFileInfo(pathRaw, context);
-      if (!pathInfo) {
-        return;
-      }
-
-      changeManager.onPathRemoved(pathInfo.path, pathInfo.isDirectory, rootPath);
+      // Doesn't exist on disk
+      await onRemoved(rootPath, path);
     }
+  };
+
+  const onChanged = async (stats: Stats, rootPath: string, pathRaw: string) => {
+    const pathInfo = await getModifiedPathInfo(stats, pathRaw, context);
+    if (!pathInfo) {
+      return;
+    }
+
+    changeManager.onPathChanged(pathInfo.path, pathInfo.isDirectory, rootPath);
+  };
+
+  const onRemoved = async (rootPath: string, pathRaw: string) => {
+    const pathInfo = await getDeletedFileInfo(pathRaw, context);
+    if (!pathInfo) {
+      return;
+    }
+
+    changeManager.onPathRemoved(pathInfo.path, pathInfo.isDirectory, rootPath);
   };
 
   // Create watcher for a share root path
@@ -103,9 +125,14 @@ export const Monitor = async (context: Context) => {
             logger.verbose(`Path ${path} was added for monitoring`);
             resolve(watcher);
           })
-          .on('change', onWatcherChange)
+          .on('change', onWatcherChange.bind(this, path))
           .on('error', onWatcherError.bind(this, path))
           .on('close', onWatcherClose.bind(this, path));
+
+        // No 'ready' event in node
+        if (!USE_THIRD_PARTY_WATCH) {
+          resolve(watcher);
+        }
       } catch (e) {
         if (reportErrors) {
           api.postEvent(`Failed to add path ${path} for monitoring: ${e.message}`, SeverityEnum.ERROR);
