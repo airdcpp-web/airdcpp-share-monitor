@@ -28,7 +28,7 @@ If you don't need to watch all shared directories for changes, you may set some 
 
 **Solution 2**
 
-You may increase the maximum watcher limit on your system ([instructions](https://confluence.jetbrains.com/display/IDEADEV/Inotify+Watches+Limit))
+You may increase the maximum watcher limit on your system ([instructions](https://stackoverflow.com/a/55543310))
 
 #### Extension airdcpp-share-monitor timed out and was restarted
 
