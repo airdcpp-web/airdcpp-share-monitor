@@ -34,4 +34,4 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        slug: airdcpp-web/airdcpp-release-validator
+        slug: airdcpp-web/airdcpp-share-monitor
