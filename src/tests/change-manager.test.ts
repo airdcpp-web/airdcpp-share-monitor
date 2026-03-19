@@ -1,6 +1,6 @@
-import path from 'path';
+import path from 'node:path';
+import { writeFileSync, unlinkSync, mkdirSync, rmdirSync } from 'node:fs';
 
-import { writeFileSync, unlinkSync, mkdirSync, rmdirSync } from 'fs';
 import { getReadyMockMonitor, maybeRemoveFile, maybeRemoveDirectory, triggerFsChange, DEFAULT_EXPECT_TIMEOUT } from './helpers';
 import { MOCK_INCOMING_ROOT, MOCK_NORMAL_ROOT } from './mocks/mock-data';
 import { MOCK_EXTENSION_SETTINGS } from './mocks/mock-context-defaults';

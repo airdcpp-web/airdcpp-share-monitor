@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 
 
 export const MOCK_INCOMING_ROOT = {

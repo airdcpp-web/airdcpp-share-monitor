@@ -33,7 +33,7 @@ export const MOCK_API: APIType = {
       return Promise.resolve(true);
     }
 
-    return Promise.reject('Setting key not supported');
+    return Promise.reject(new Error('Setting key not supported'));
   },
   getShareRoots: () => {
     return Promise.resolve(MOCK_SHARE_ROOTS);

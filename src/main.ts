@@ -62,7 +62,9 @@ const Extension = function (socket: APISocket, extension: ExtensionEntryData) {
             semantic: 'green checkmark'
           },
           filter: () => !!monitor!.getPendingChanges().length,
-          onClick: () => monitor!.flush(true),
+          onClick: () => {
+            monitor!.flush(true);
+          }
         }
       ],
       'extension',

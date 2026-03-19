@@ -1,9 +1,8 @@
 import { ensureEndSeparator } from '../utils';
 
-import { Stats } from 'fs';
-
 import { Context } from '../context';
 
+import { Stats } from 'node:fs';
 
 export const MIN_PATH_MODIFICATION_AGE_MS = 1000;
 

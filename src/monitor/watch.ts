@@ -1,6 +1,7 @@
 import thirdPartyWatch from 'node-watch';
-import { watch as nativeWatch } from 'fs';
-import { join as joinPath } from 'path';
+
+import { watch as nativeWatch } from 'node:fs';
+import { join as joinPath } from 'node:path';
 
 
 // Node.js 20 adds support for recursive watching even on operating systems without native support
